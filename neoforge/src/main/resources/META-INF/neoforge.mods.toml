@@ -1,0 +1,38 @@
+modLoader = "lowcodefml"
+loaderVersion = "[2,)"
+#issueTrackerURL = ""
+license = "GNU GPL 3.0"
+
+[[mods]]
+modId = "chatmanager_core"
+version = "${version}"
+displayName = "ChatManager-Core"
+authors = "Fozeton"
+description = '''
+
+'''
+#logoFile = ""
+
+[[dependencies.chatmanager_core]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chatmanager_core]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.4,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chatmanager_core]]
+modId = "architectury"
+type = "required"
+versionRange = "[15.0.3,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[mixins]]
+config = "chatmanager_core.mixins.json"

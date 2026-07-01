@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "chatmanager_core",
+  "version": "${version}",
+  "name": "ChatManager-Core",
+  "description": "",
+  "authors": [
+    "Fozeton"
+  ],
+  "contact": {
+    "homepage": ""
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/chatmanager_core/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "ru.fozeton.chatmanager.fabric.ChatmanagerCoreFabric"
+    ]
+  },
+  "mixins": [
+    "chatmanager_core.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
