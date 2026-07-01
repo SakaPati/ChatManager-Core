@@ -10,7 +10,6 @@ import java.util.Map;
 @Setter
 public class MacrosConfig {
     private boolean enabled = true;
-
     private final Map<String, Macros> macros = new HashMap<>();
 
     @Getter

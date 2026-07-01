@@ -13,6 +13,7 @@ import ru.fozeton.chatmanager.config.ChannelsConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
 import ru.fozeton.chatmanager.events.PlayerMentionedEvent;
+import ru.fozeton.chatmanager.events.channel.MessageStackEvent;
 import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
@@ -53,6 +54,11 @@ public class MessageHandlingChannel {
         onNetworkDispatch(message);
     }
 
+    @EventSubscriber(event = MessageStackEvent.class)
+    public void onStackMessage(MessageStackEvent event) {
+
+    }
+
     protected boolean onPreProcess(Message message) {
         return true;
     }
@@ -82,7 +88,10 @@ public class MessageHandlingChannel {
         ChannelsConfig.WebHook globalWebHook = channelsConfig.getGlobalWebHook();
         if (messageChannel != null) {
             ChannelsConfig.ChannelSettings channelSettings = channelsConfig.getChannels().get(messageChannel.getId());
-            if (channelSettings != null) localWebHook = channelSettings.getWebHook();
+            if (channelSettings != null) {
+                if (channelSettings.isChannelIgnore()) return;
+                localWebHook = channelSettings.getWebHook();
+            }
         }
 
         String targetUrl = resolveWebhookUrl(localWebHook, globalWebHook);
@@ -125,5 +134,6 @@ public class MessageHandlingChannel {
         return false;
     }
 
-    private record NetworkMessage(String content) {}
+    private record NetworkMessage(String content) {
+    }
 }

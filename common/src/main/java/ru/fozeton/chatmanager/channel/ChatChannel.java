@@ -3,9 +3,11 @@ package ru.fozeton.chatmanager.channel;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.events.channel.ChannelAddedEvent;
 import ru.fozeton.chatmanager.events.channel.MessageAddedToChannelEvent;
+import ru.fozeton.chatmanager.events.channel.MessageStackEvent;
 import ru.fozeton.chatmanager.messages.Message;
 
 import java.util.ArrayList;
@@ -37,10 +39,24 @@ public class ChatChannel {
     }
 
     public void addMessage(Message message) {
-        if (messages.size() >= maxHistoryMessage) messages.removeLast();
-        messages.addFirst(message);
-        messageHistory.addFirst(message);
-        ChatManagerCore.EVENT_BUS.activate(new MessageAddedToChannelEvent(message, this));
+        synchronized (messages) {
+            long segment = System.currentTimeMillis() - 5000;
+            for (Message msg : messages) {
+                if (msg.getTimestamp().toEpochMilli() < segment) break;
+
+                if (msg.getPlainText().equals(message.getPlainText())) {
+                    msg.setStack(msg.getStack() + 1);
+                    ChatManagerCore.EVENT_BUS.activate(new MessageStackEvent(msg.getId(), msg, this));
+
+                    return;
+                }
+            }
+
+            if (messages.size() >= maxHistoryMessage) messages.removeLast();
+            messages.addFirst(message);
+            messageHistory.addFirst(message);
+            ChatManagerCore.EVENT_BUS.activate(new MessageAddedToChannelEvent(message, this));
+        }
     }
 
     public List<Message> getMessages() {

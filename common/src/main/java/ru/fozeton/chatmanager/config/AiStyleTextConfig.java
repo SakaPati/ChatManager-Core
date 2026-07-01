@@ -25,12 +25,7 @@ public class AiStyleTextConfig {
     );
     private String apiKey = "";
     private String apiUrl = "https://api.groq.com/openai/v1/chat/completions";
-
     private Map<String, AiStyle> styles = new LinkedHashMap<>();
-
-    protected AiStyleTextConfig createDefault() {
-        return new AiStyleTextConfig();
-    }
 
     @Getter
     @Setter
