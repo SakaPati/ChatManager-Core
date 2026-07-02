@@ -23,7 +23,7 @@ import java.util.Objects;
 @Mixin(ChatScreen.class)
 public class ChatScreenMixin {
     @Unique
-    private final AiStyleTextConfig chatmanager_core$aiStyle = ChatConfigManager.getInstance().getTextStyle();
+    private final AiStyleTextConfig chatmanager_core$aiStyle = ChatConfigManager.getInstance().getTextStyleConfig();
     @Unique
     private final Gson chatmanager_core$gson = new Gson();
     @Unique

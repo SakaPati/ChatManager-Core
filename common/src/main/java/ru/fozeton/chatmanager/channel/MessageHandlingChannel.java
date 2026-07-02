@@ -31,7 +31,7 @@ public class MessageHandlingChannel {
     private final Gson gson = new Gson();
     @Getter
     private final List<MessageHandler> handlers = new ArrayList<>();
-    private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().load(ChannelsConfig.class);
+    private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
     private final HttpClient client = HttpClient.newHttpClient();
 
     public MessageHandlingChannel() {

@@ -16,12 +16,12 @@ import java.util.Map;
 public class AiStyleTextConfig implements IConfig{
     @Setter(AccessLevel.NONE)
     private final List<String> _comment = List.of(
-            "Чтобы получить apiKey:",
-            "1) Зайди на сайт console.groq.com",
-            "2) Зарегистрируйся",
-            "3) Справа нажми API Keys",
-            "4) Нажми Create API Key",
-            "5) Скопируй ключ и вставь ниже, в поле apiKey"
+            "To get the apiKey:",
+            "1) Go to console.groq.com",
+            "2) Sign up or log in",
+            "3) Click 'API Keys' on the right side",
+            "4) Click 'Create API Key'",
+            "5) Copy the key and paste it below into the apiKey field"
     );
     private String apiKey = "";
     private String apiUrl = "https://api.groq.com/openai/v1/chat/completions";

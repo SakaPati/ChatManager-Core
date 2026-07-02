@@ -11,14 +11,15 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class ChannelsConfig implements IConfig{
+public class ChannelsConfig implements IConfig {
     private boolean isUseTimeFormatter = true;
     private String timeColor = "0xFF55FF55";
     private int lineBackgroundAlpha = 200;
     private int stripBackgroundAlpha = 255;
+
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private final String _globalWebHook_ = "Глобальный хук используется для отправки ВСЕХ сообщений по http";
+    private final String _globalWebHook_ = "Global webhook is used to send ALL messages via HTTP";
     private WebHook globalWebHook = new WebHook();
     private Map<String, ChannelSettings> channels = new LinkedHashMap<>();
     private ChatHistory historyChat = new ChatHistory();
@@ -50,13 +51,15 @@ public class ChannelsConfig implements IConfig{
         private int fadingStartTime = 10000;
         private int fadingDuration = 1000;
         private EditMode editMode = new EditMode();
+
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
-        private final String _webHook_ = "Локальный хук имеет приоритет над глобальным, даже если глобальный включен, то для отправки будет использоваться локальный";
+        private final String _webHook_ = "Local webhook takes priority over the global one. Even if the global webhook is enabled, the local one will be used for sending.";
         private WebHook webHook = new WebHook();
+
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
-        private final String _isChannelIgnore_ = "Если true - сообщения этого канала НИКОГДА не отправляются на webhook (ни на локальный, ни на глобальный), независимо от настроек webHook и globalWebHook.";
+        private final String _isChannelIgnore_ = "If true, messages from this channel will NEVER be sent to any webhook (neither local nor global), regardless of webHook and globalWebHook settings.";
         private boolean isChannelIgnore = false;
     }
 
@@ -82,9 +85,10 @@ public class ChannelsConfig implements IConfig{
     public static class WebHook {
         private String url = "";
         private boolean enable = false;
+
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
-        private final String _cleanText_ = "Режим отправки текста в webhook. false (по умолчанию) - отправляется сериализованный Component (JSON с цветами и форматированием). true - отправляется чистый текст без форматирования.";
+        private final String _cleanText_ = "Webhook text delivery mode. false (default) - sends a serialized Component (JSON with colors and formatting). true - sends plain text without formatting.";
         private boolean cleanText = false;
     }
 }

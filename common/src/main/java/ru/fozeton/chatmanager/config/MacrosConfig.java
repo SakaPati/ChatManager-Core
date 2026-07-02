@@ -1,6 +1,8 @@
 package ru.fozeton.chatmanager.config;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashMap;
@@ -14,6 +16,7 @@ public class MacrosConfig implements IConfig{
 
     @Getter
     @Setter
+    @AllArgsConstructor
     public static class Macros {
         private int time;
         private boolean isActive;

@@ -10,22 +10,10 @@ public class AliasDefault implements Default<AliasConfig> {
         AliasConfig config = new AliasConfig();
         List<AliasConfig.Alias> aliases = config.getAliases();
 
-        aliases.add(new AliasConfig.Alias("!lvl", "уровень"));
-        aliases.add(new AliasConfig.Alias("!kb", "кол-во блоков"));
-        aliases.add(new AliasConfig.Alias("!don", "донат"));
-        aliases.add(new AliasConfig.Alias("!tp", "телепорт"));
-        aliases.add(new AliasConfig.Alias("!ah", "аукцион"));
-        aliases.add(new AliasConfig.Alias("!mine", "шахта"));
-        aliases.add(new AliasConfig.Alias("!craft", "крафт"));
-        aliases.add(new AliasConfig.Alias("!ench", "зачарование"));
-        aliases.add(new AliasConfig.Alias("!clan", "клан"));
-        aliases.add(new AliasConfig.Alias("!ks", "клан скилл"));
-        aliases.add(new AliasConfig.Alias("!sell", "продажа"));
-        aliases.add(new AliasConfig.Alias("!buy", "покупка"));
-        aliases.add(new AliasConfig.Alias("!evt", "ивент"));
-        aliases.add(new AliasConfig.Alias("!adm", "администрация"));
-        aliases.add(new AliasConfig.Alias("!help", "помощь"));
-        aliases.add(new AliasConfig.Alias("!ty", "спасибо"));
+        aliases.add(new AliasConfig.Alias("!lvl", "level"));
+        aliases.add(new AliasConfig.Alias("!cb", "count of blocks"));
+        aliases.add(new AliasConfig.Alias("!don", "donate"));
+        aliases.add(new AliasConfig.Alias("!tp", "teleport"));
 
         return config;
     }

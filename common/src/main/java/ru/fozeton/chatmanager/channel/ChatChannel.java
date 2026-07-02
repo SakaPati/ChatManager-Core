@@ -3,7 +3,6 @@ package ru.fozeton.chatmanager.channel;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.network.chat.Component;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.events.channel.ChannelAddedEvent;
 import ru.fozeton.chatmanager.events.channel.MessageAddedToChannelEvent;

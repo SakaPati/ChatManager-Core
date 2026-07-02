@@ -18,7 +18,7 @@ import ru.fozeton.chatmanager.messages.Message;
 @Mixin(ClientPacketListener.class)
 public class ClientChatMixin {
     @Unique
-    private final AliasConfig chatmanager_core$aliasConfig = ChatConfigManager.getInstance().load(AliasConfig.class);
+    private final AliasConfig chatmanager_core$aliasConfig = ChatConfigManager.getInstance().getAliasConfig();
 
     @Inject(method = "handlePlayerChat", at = @At(value = "HEAD"), cancellable = true)
     public void playerChatHandler(ClientboundPlayerChatPacket clientboundPlayerChatPacket, CallbackInfo ci) {
