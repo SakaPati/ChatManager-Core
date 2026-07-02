@@ -14,13 +14,14 @@ import java.util.Map;
 @Getter
 @Setter
 public class AiStyleTextConfig implements IConfig{
+    @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final List<String> _comment = List.of(
             "To get the apiKey:",
             "1) Go to console.groq.com",
             "2) Sign up or log in",
-            "3) Click 'API Keys' on the right side",
-            "4) Click 'Create API Key'",
+            "3) Click API Keys on the right side",
+            "4) Click Create API Key",
             "5) Copy the key and paste it below into the apiKey field"
     );
     private String apiKey = "";

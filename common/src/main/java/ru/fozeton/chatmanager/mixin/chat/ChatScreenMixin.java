@@ -3,11 +3,15 @@ package ru.fozeton.chatmanager.mixin.chat;
 import com.ferra13671.megaevents.eventbus.EventSubscriber;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.AiStyleTextConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
@@ -30,22 +34,31 @@ public class ChatScreenMixin {
     private final HttpClient chatmanager_core$client = HttpClient.newHttpClient();
     @Unique
     private final Logger chatmanager_core$log = new Logger(ChatScreenMixin.class);
+
     @Shadow
     protected EditBox input;
 
-    public ChatScreenMixin() {
+    @Inject(method = "init", at = @At("HEAD"))
+    private void chatmanager_core$registerBus(CallbackInfo ci) {
         ChatManagerCore.EVENT_BUS.register(this);
+    }
+
+    @Inject(method = "removed", at = @At("HEAD"))
+    private void chatmanager_core$unregisterBus(CallbackInfo ci) {
+        ChatManagerCore.EVENT_BUS.unregister(this);
     }
 
     @Unique
     @EventSubscriber(event = StylizeMessageEvent.class)
     public void chatmanager_core$onStyledMessage(StylizeMessageEvent event) {
+        if (this.input == null || this.input.getValue().isEmpty()) return;
+
         chatmanager_core$aiStyle.getStyles().get(event.getStyle()).getMessages().add(AiStyleTextConfig.Message.builder()
                 .role("user")
                 .content(this.input.getValue())
                 .build());
 
-        String body = chatmanager_core$gson.toJson(chatmanager_core$aiStyle);
+        String body = chatmanager_core$gson.toJson(chatmanager_core$aiStyle.getStyles().get(event.getStyle()));
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(chatmanager_core$aiStyle.getApiUrl()))
@@ -55,7 +68,7 @@ public class ChatScreenMixin {
                 )
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
-
+        chatmanager_core$log.info("Sending AI stylization request -> URI: " + request.uri() + " | Style: " + event.getStyle() + " | Body: " + body);
         chatmanager_core$client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
             int status = response.statusCode();
             if (status >= 400) {
@@ -70,7 +83,9 @@ public class ChatScreenMixin {
                     .get("content").getAsString();
 
             chatmanager_core$log.info("Text style applied, total tokens used: " + json.getAsJsonObject("usage").get("total_tokens").getAsInt());
-            this.input.setValue(content);
+
+            Minecraft.getInstance().execute(() -> this.input.setValue(content));
+
         }).exceptionally(ex -> {
             chatmanager_core$log.error("Server connection error: " + ex.getMessage());
             return null;
