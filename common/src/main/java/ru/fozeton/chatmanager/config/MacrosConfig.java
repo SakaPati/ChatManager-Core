@@ -8,7 +8,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class MacrosConfig {
+public class MacrosConfig implements IConfig{
     private boolean enabled = true;
     private final Map<String, Macros> macros = new HashMap<>();
 

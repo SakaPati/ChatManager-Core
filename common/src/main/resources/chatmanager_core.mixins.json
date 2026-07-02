@@ -6,6 +6,7 @@
   "client": [
     "ClientMixin",
     "chat.AddedLocalMessage",
+    "chat.ChatScreenMixin",
     "chat.ChatScroll",
     "chat.ClientChatMixin",
     "input.KeyBoardMixin",

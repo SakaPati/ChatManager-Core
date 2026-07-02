@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class ChannelsConfig {
+public class ChannelsConfig implements IConfig{
     private boolean isUseTimeFormatter = true;
     private String timeColor = "0xFF55FF55";
     private int lineBackgroundAlpha = 200;

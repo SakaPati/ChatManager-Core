@@ -39,7 +39,7 @@ public class Logger {
         addLog("ERROR", msg);
     }
 
-    private void addLog(String level, String msg) {
+    protected void addLog(String level, String msg) {
         buffer.add(new LogEntry(Instant.now().toEpochMilli(), prefix, level, msg));
 
         Path logFile = logsDir.resolve("chatManager.log");

@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class AliasConfig {
+public class AliasConfig implements IConfig{
     private boolean enabled = true;
     private boolean applyToCommands = true;
     private List<Alias> aliases = new LinkedList<>();

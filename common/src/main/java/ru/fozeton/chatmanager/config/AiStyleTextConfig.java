@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class AiStyleTextConfig {
+public class AiStyleTextConfig implements IConfig{
     @Setter(AccessLevel.NONE)
     private final List<String> _comment = List.of(
             "Чтобы получить apiKey:",
