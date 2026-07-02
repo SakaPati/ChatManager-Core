@@ -1,7 +1,7 @@
 modLoader = "lowcodefml"
 loaderVersion = "[2,)"
-#issueTrackerURL = ""
-license = "GNU GPL 3.0"
+issueTrackerURL = "https://github.com/SakaPati/ChatManager-Core/issues"
+license = "GPL-3.0"
 
 [[mods]]
 modId = "chatmanager_core"
@@ -9,9 +9,9 @@ version = "${version}"
 displayName = "ChatManager-Core"
 authors = "Fozeton"
 description = '''
-
+ChatManager-Core is a library for working with Minecraft chat
 '''
-#logoFile = ""
+logoFile = "assets/chatmanager_core/icon.png"
 
 [[dependencies.chatmanager_core]]
 modId = "neoforge"
@@ -23,7 +23,7 @@ side = "BOTH"
 [[dependencies.chatmanager_core]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.4,)"
+versionRange = "[1.21.4]"
 ordering = "NONE"
 side = "BOTH"
 

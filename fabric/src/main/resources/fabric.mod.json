@@ -3,16 +3,17 @@
   "id": "chatmanager_core",
   "version": "${version}",
   "name": "ChatManager-Core",
-  "description": "",
+  "description": "ChatManager-Core is a library for working with Minecraft chat",
   "authors": [
     "Fozeton"
   ],
   "contact": {
-    "homepage": ""
+    "sources": "https://github.com/SakaPati/ChatManager-Core",
+    "issues": "https://github.com/SakaPati/ChatManager-Core/issues"
   },
   "license": "GPL-3.0",
   "icon": "assets/chatmanager_core/icon.png",
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
     "client": [
       "ru.fozeton.chatmanager.fabric.ChatmanagerCoreFabric"
@@ -24,10 +25,8 @@
   "depends": {
     "fabricloader": ">=0.17.2",
     "minecraft": "~1.21.4",
+    "architectury": ">=15.0.3",
     "java": ">=21",
     "fabric-api": "*"
-  },
-  "suggests": {
-    "another-mod": "*"
   }
 }
