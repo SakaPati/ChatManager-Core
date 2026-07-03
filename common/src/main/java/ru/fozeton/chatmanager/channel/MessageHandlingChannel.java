@@ -27,11 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MessageHandlingChannel {
+    protected final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
     private final Logger log = new Logger(MessageHandlingChannel.class);
     private final Gson gson = new Gson();
     @Getter
     private final List<MessageHandler> handlers = new ArrayList<>();
-    private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
     private final HttpClient client = HttpClient.newHttpClient();
 
     public MessageHandlingChannel() {

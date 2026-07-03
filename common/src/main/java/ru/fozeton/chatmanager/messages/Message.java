@@ -10,9 +10,7 @@ import ru.fozeton.chatmanager.config.ChatConfigManager;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
@@ -50,10 +48,48 @@ public class Message {
     }
 
     public void setClickEvent(ClickEvent.Action action, String value) {
+        setClickEvent(action, value, null);
+    }
+
+    public void setClickEvent(ClickEvent.Action action, String value, @Nullable String commandPrefix) {
+        if (commandPrefix != null) {
+            MutableComponent replaced = tryReplace(this.content, commandPrefix, action, value);
+            if (replaced != null) {
+                this.content = replaced;
+                this.style = replaced.getStyle();
+                return;
+            }
+        }
+
         ClickEvent clickEvent = style.getClickEvent();
         String newValue = clickEvent == null ? value : value + " \"" + clickEvent.getValue() + "\"";
         this.style = style.withClickEvent(new ClickEvent(action, newValue));
         this.content = content.copy().setStyle(this.style);
+    }
+
+    @Nullable
+    private MutableComponent tryReplace(Component node, String commandPrefix, ClickEvent.Action action, String value) {
+        ClickEvent existing = node.getStyle().getClickEvent();
+
+        if (existing != null && existing.getValue().startsWith(commandPrefix)) {
+            String newValue = value + " \"" + existing.getValue() + "\"";
+            Style newStyle = node.getStyle().withClickEvent(new ClickEvent(action, newValue));
+            return node.copy().setStyle(newStyle);
+        }
+
+        List<Component> siblings = node.getSiblings();
+        for (int i = 0; i < siblings.size(); i++) {
+            MutableComponent replacedChild = tryReplace(siblings.get(i), commandPrefix, action, value);
+            if (replacedChild != null) {
+                MutableComponent rebuilt = node.copy();
+                List<Component> newSiblings = new ArrayList<>(rebuilt.getSiblings());
+                newSiblings.set(i, replacedChild);
+                rebuilt.getSiblings().clear();
+                rebuilt.getSiblings().addAll(newSiblings);
+                return rebuilt;
+            }
+        }
+        return null;
     }
 
     public MutableComponent getMutContent() {
