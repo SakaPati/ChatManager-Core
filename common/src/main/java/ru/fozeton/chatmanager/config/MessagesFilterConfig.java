@@ -12,7 +12,6 @@ import java.util.List;
 public class MessagesFilterConfig implements IConfig{
     private final List<MessageFilter> filters = new LinkedList<>();
 
-
     @Getter
     @Setter
     @RequiredArgsConstructor
@@ -20,5 +19,6 @@ public class MessagesFilterConfig implements IConfig{
         private final String pattern;
         private final String borderColor;
         private final String lineColor;
+        private String replyMessage;
     }
 }

@@ -54,11 +54,6 @@ public class MessageHandlingChannel {
         onNetworkDispatch(message);
     }
 
-    @EventSubscriber(event = MessageStackEvent.class)
-    public void onStackMessage(MessageStackEvent event) {
-
-    }
-
     protected boolean onPreProcess(Message message) {
         return true;
     }
