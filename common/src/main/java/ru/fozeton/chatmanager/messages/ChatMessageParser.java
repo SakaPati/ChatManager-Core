@@ -50,7 +50,7 @@ public interface ChatMessageParser {
                 UUID.randomUUID().toString(),
                 null,
                 component,
-                component.getSiblings().isEmpty() ? component.getString() : component.getSiblings().getLast().getString(),
+                component.getString(),
                 MessageType.CLIENT,
                 Instant.now()
         );

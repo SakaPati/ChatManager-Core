@@ -1,5 +1,6 @@
 package ru.fozeton.chatmanager.messages;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.*;
@@ -14,6 +15,7 @@ import java.util.*;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class Message {
     private final String id;
     @Nullable

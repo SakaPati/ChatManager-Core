@@ -38,6 +38,7 @@ public class ChannelsConfig implements IConfig {
         private int y;
         private int width;
         private int height;
+        private int maxVisibleLine = 10;
         private String backgroundColor = "0x80000000";
         private String messageStackColor = "0xFFD3D3D3";
         private String blinkColor = "0xE63A2E1A";
