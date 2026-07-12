@@ -3,15 +3,18 @@ package ru.fozeton.chatmanager.messages;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.network.chat.*;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 import ru.fozeton.chatmanager.channel.ChatChannel;
-import ru.fozeton.chatmanager.config.ChannelsConfig;
-import ru.fozeton.chatmanager.config.ChatConfigManager;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter

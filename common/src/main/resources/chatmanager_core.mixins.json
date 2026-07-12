@@ -13,6 +13,7 @@
     "input.MouseMixin"
   ],
   "mixins": [
+    "game.ClientConnectionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

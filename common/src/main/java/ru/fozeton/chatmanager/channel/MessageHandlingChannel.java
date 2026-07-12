@@ -13,7 +13,6 @@ import ru.fozeton.chatmanager.config.ChannelsConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
 import ru.fozeton.chatmanager.events.PlayerMentionedEvent;
-import ru.fozeton.chatmanager.events.channel.MessageStackEvent;
 import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
