@@ -19,7 +19,7 @@ public class MouseMixin {
 
     @Inject(method = "onPress", at = @At("HEAD"))
     public void modifyOnMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
-        InputEvent.MouseInputEvent event = new InputEvent.MouseInputEvent(button, action, xpos, ypos);
+        InputEvent.MouseInputEvent event = new InputEvent.MouseInputEvent(window, button, action, xpos, ypos);
         ChatManagerCore.EVENT_BUS.activate(event);
     }
 }

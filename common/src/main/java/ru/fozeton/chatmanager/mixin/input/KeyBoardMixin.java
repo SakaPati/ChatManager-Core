@@ -13,10 +13,16 @@ import ru.fozeton.chatmanager.events.InputEvent;
 public class KeyBoardMixin {
     @Inject(at = @At(value = "HEAD"), method = "keyPress")
     public void modifyOnKey(long window, int keyCode, int scancode, int action, int modifiers, CallbackInfo ci) {
+        InputEvent.KeyInputEvent.Action eventAction = action == 1 ? InputEvent.KeyInputEvent.Action.PRESS
+                : action == 0 ? InputEvent.KeyInputEvent.Action.RELEASE
+                : InputEvent.KeyInputEvent.Action.HOLDING;
+
         ChatManagerCore.EVENT_BUS.activate(new InputEvent.KeyInputEvent(
+                window,
                 keyCode,
                 InputConstants.getKey(keyCode, scancode),
-                action == 1 ? InputEvent.KeyInputEvent.Action.PRESS : action == 0 ? InputEvent.KeyInputEvent.Action.RELEASE : InputEvent.KeyInputEvent.Action.HOLDING
+                eventAction,
+                modifiers
         ));
     }
 }

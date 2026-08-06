@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -15,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.AiStyleTextConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
+import ru.fozeton.chatmanager.events.InputEvent;
 import ru.fozeton.chatmanager.events.game.StylizeMessageEvent;
 import ru.fozeton.chatmanager.utils.Logger;
 
@@ -22,6 +24,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Objects;
 
 @Mixin(ChatScreen.class)
@@ -34,9 +38,16 @@ public class ChatScreenMixin {
     private final HttpClient chatmanager_core$client = HttpClient.newHttpClient();
     @Unique
     private final Logger chatmanager_core$log = new Logger(ChatScreenMixin.class);
-
+    @Unique
+    private final Deque<String> chatmanager_core$undoStack = new ArrayDeque<>();
+    @Unique
+    private final Deque<String> chatmanager_core$redoStack = new ArrayDeque<>();
     @Shadow
     protected EditBox input;
+    @Unique
+    private long chatmanager_core$lastKeyPressTime = -1;
+    @Unique
+    private boolean isOperation = false;
 
     @Inject(method = "init", at = @At("HEAD"))
     private void chatmanager_core$registerBus(CallbackInfo ci) {
@@ -46,6 +57,9 @@ public class ChatScreenMixin {
     @Inject(method = "removed", at = @At("HEAD"))
     private void chatmanager_core$unregisterBus(CallbackInfo ci) {
         ChatManagerCore.EVENT_BUS.unregister(this);
+
+        chatmanager_core$undoStack.clear();
+        chatmanager_core$redoStack.clear();
     }
 
     @Unique
@@ -90,5 +104,43 @@ public class ChatScreenMixin {
             chatmanager_core$log.error("Server connection error: " + ex.getMessage());
             return null;
         });
+    }
+
+    @Inject(method = "onEdited", at = @At(value = "HEAD"))
+    private void onAddUndoStack(String msg, CallbackInfo ci) {
+        if(isOperation || msg.equals(chatmanager_core$undoStack.peek())) return;
+
+        if ((System.currentTimeMillis() - chatmanager_core$lastKeyPressTime) > 2000) {
+            chatmanager_core$lastKeyPressTime = System.currentTimeMillis();
+            chatmanager_core$undoStack.push(msg);
+        } else if (msg.endsWith(" ")) chatmanager_core$undoStack.push(msg);
+
+        chatmanager_core$redoStack.clear();
+    }
+
+    @Unique
+    @EventSubscriber(event = InputEvent.KeyInputEvent.class)
+    public void chatmanager_core$onUndoOrRedo(InputEvent.KeyInputEvent event) {
+        if (event.getAction() == InputEvent.KeyInputEvent.Action.PRESS && event.isHoldingLeftControl()) {
+            if (event.getKeyCode() == GLFW.GLFW_KEY_Z && !chatmanager_core$undoStack.isEmpty()) {
+                isOperation = true;
+                String currentMsg = input.getValue();
+                String pastMsg = chatmanager_core$undoStack.pop();
+                chatmanager_core$redoStack.push(currentMsg);
+
+                input.setValue(pastMsg);
+            }
+
+            if (event.getKeyCode() == GLFW.GLFW_KEY_Y && !chatmanager_core$redoStack.isEmpty()) {
+                isOperation = true;
+                String currentMsg = input.getValue();
+                String futureMsg = chatmanager_core$redoStack.pop();
+                chatmanager_core$undoStack.push(currentMsg);
+
+                input.setValue(futureMsg);
+            }
+
+            isOperation = false;
+        }
     }
 }
