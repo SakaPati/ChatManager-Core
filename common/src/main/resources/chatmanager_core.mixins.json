@@ -11,6 +11,7 @@
     "chat.ClientChatMixin",
     "chat.CommandSuggestionsMixin",
     "game.ClientConnectionMixin",
+    "game.LocalPlayerMixin",
     "input.KeyBoardMixin",
     "input.MouseMixin"
   ],
