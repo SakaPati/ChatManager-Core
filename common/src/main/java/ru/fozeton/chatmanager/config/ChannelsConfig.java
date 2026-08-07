@@ -16,6 +16,7 @@ public class ChannelsConfig implements IConfig {
     private String timeColor = "0xFF55FF55";
     private int lineBackgroundAlpha = 200;
     private int stripBackgroundAlpha = 255;
+    private int sendMessageDelaySeconds = 1;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)

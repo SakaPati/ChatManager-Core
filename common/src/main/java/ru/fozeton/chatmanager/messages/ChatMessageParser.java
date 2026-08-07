@@ -15,11 +15,15 @@ import java.util.UUID;
 
 public interface ChatMessageParser {
     default Message parsePlayerChat(ClientboundPlayerChatPacket packet) {
+        Component content = packet.unsignedContent() != null
+                ? packet.unsignedContent()
+                : packet.chatType().decorate(Component.literal(packet.body().content()));
+
         return new Message(
                 UUID.randomUUID().toString(),
                 packet.chatType().name().getString(),
-                useTimeFormatter(packet.unsignedContent()),
-                packet.unsignedContent() != null ? packet.unsignedContent().getString() : packet.body().content(),
+                useTimeFormatter(content),
+                packet.body().content(),
                 MessageType.PLAYER,
                 packet.body().timeStamp()
         );

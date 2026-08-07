@@ -1,10 +1,49 @@
 package ru.fozeton.chatmanager.mixin.chat;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ChatScreenMixinTest {
+    private final List<String> chunksList = List.of(
+            "Каждое утро город просыпается медленно, будто нехотя стряхивая с себя ночную тишину. Сначала загораются окна в домах, потом на улицах появляются первые прохожие, спешащие по своим делам. Кто-то торопится на работу, кто-то ведёт детей в школу, а кто-то",
+            "просто наслаждается утренней прохладой перед началом суетливого дня. Воздух пахнет свежестью и лёгким туманом, который постепенно рассеивается под лучами восходящего солнца. Птицы поют звонко и радостно, будто приветствуя новый день. Городской шум",
+            "нарастает постепенно: сначала слышны редкие звуки моторов, а потом улицы наполняются гулом машин и голосами людей. В такие моменты особенно хочется остановиться и просто понаблюдать за жизнью вокруг, ощутить её ритм и энергию. Именно утро задаёт настроение",
+            "на весь день, и поэтому так важно встречать его спокойно, не спеша, с чашкой ароматного кофе и мыслями о предстоящих делах, планах на будущее и приятных мелочах жизни, ведь именно первые минуты определяют весь дальнейший лад и настрой человека"
+    );
 
-    @org.junit.jupiter.api.Test
-    void chatmanager_core$redirectSendChat() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Каждое утро город просыпается медленно, будто нехотя стряхивая с себя ночную тишину. Сначала загораются окна в домах, потом на улицах появляются первые прохожие, спешащие по своим делам. Кто-то торопится на работу, кто-то ведёт детей в школу, а кто-то просто наслаждается утренней прохладой перед началом суетливого дня. Воздух пахнет свежестью и лёгким туманом, который постепенно рассеивается под лучами восходящего солнца. Птицы поют звонко и радостно, будто приветствуя новый день. Городской шум нарастает постепенно: сначала слышны редкие звуки моторов, а потом улицы наполняются гулом машин и голосами людей. В такие моменты особенно хочется остановиться и просто понаблюдать за жизнью вокруг, ощутить её ритм и энергию. Именно утро задаёт настроение на весь день, и поэтому так важно встречать его спокойно, не спеша, с чашкой ароматного кофе и мыслями о предстоящих делах, планах на будущее и приятных мелочах жизни, ведь именно первые минуты определяют весь дальнейший лад и настрой человека"
+    })
+    void chunksSplitTest(String message) {
+        if (message.length() <= 256) return;
+
+        List<String> chunks = new LinkedList<>();
+        String[] messages = message.split(" ");
+        StringBuilder chunkBuilder = new StringBuilder();
+
+        for (String msg : messages) {
+            int spaceNeeded = !chunkBuilder.isEmpty() ? 1 : 0;
+
+            if (chunkBuilder.length() + spaceNeeded + msg.length() <= 256) {
+                if (spaceNeeded > 0) chunkBuilder.append(" ");
+                chunkBuilder.append(msg);
+            } else {
+                chunks.add(chunkBuilder.toString());
+                chunkBuilder.setLength(0);
+                chunkBuilder.append(msg);
+            }
+        }
+
+        if (!chunkBuilder.isEmpty()) {
+            chunks.add(chunkBuilder.toString());
+        }
+
+        assertEquals(chunksList, chunks);
     }
 }

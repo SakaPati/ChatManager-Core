@@ -11,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import ru.fozeton.chatmanager.channel.ChatChannel;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +71,7 @@ public class Message {
         this.content = content.copy().setStyle(this.style);
     }
 
-    @Nullable
-    private MutableComponent tryReplace(Component node, String commandPrefix, ClickEvent.Action action, String value) {
+    private @Nullable MutableComponent tryReplace(Component node, String commandPrefix, ClickEvent.Action action, String value) {
         ClickEvent existing = node.getStyle().getClickEvent();
 
         if (existing != null && existing.getValue().startsWith(commandPrefix)) {
@@ -86,11 +84,10 @@ public class Message {
         for (int i = 0; i < siblings.size(); i++) {
             MutableComponent replacedChild = tryReplace(siblings.get(i), commandPrefix, action, value);
             if (replacedChild != null) {
-                MutableComponent rebuilt = node.copy();
-                List<Component> newSiblings = new ArrayList<>(rebuilt.getSiblings());
-                newSiblings.set(i, replacedChild);
-                rebuilt.getSiblings().clear();
-                rebuilt.getSiblings().addAll(newSiblings);
+                MutableComponent rebuilt = node.plainCopy().setStyle(node.getStyle());
+                for (int j = 0; j < siblings.size(); j++) {
+                    rebuilt.append(j == i ? replacedChild : siblings.get(j));
+                }
                 return rebuilt;
             }
         }

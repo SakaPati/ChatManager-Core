@@ -9,11 +9,9 @@
     "chat.ChatScreenMixin",
     "chat.ChatScroll",
     "chat.ClientChatMixin",
+    "game.ClientConnectionMixin",
     "input.KeyBoardMixin",
     "input.MouseMixin"
-  ],
-  "mixins": [
-    "game.ClientConnectionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
