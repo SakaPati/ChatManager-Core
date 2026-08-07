@@ -32,6 +32,7 @@ public class ChatConfigManager {
         registerDefault(AliasConfig.class, new AliasDefault());
         registerDefault(ColorRemapperConfig.class, new ColorRemapperDefault());
         registerDefault(MacrosConfig.class, new MacrosDefault());
+        registerDefault(MathConfig.class, new MathDefault());
     }
 
     public <T extends IConfig> void registerDefault(Class<T> configType, Default<T> factory) {
@@ -130,5 +131,9 @@ public class ChatConfigManager {
 
     public MacrosConfig getMacrosConfig() {
         return getOrLoad(MacrosConfig.class);
+    }
+
+    public MathConfig getMathConfig() {
+        return getOrLoad(MathConfig.class);
     }
 }

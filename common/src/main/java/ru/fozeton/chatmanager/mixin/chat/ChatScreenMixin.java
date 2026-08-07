@@ -43,6 +43,7 @@ public class ChatScreenMixin {
     private final Deque<String> chatmanager_core$undoStack = new ArrayDeque<>();
     @Unique
     private final Deque<String> chatmanager_core$redoStack = new ArrayDeque<>();
+
     @Shadow
     protected EditBox input;
     @Unique
@@ -54,6 +55,9 @@ public class ChatScreenMixin {
     private void chatmanager_core$registerBus(CallbackInfo ci) {
         ChatManagerCore.EVENT_BUS.register(this);
         input.setMaxLength(1024);
+        chatmanager_core$undoStack.clear();
+        chatmanager_core$redoStack.clear();
+        chatmanager_core$undoStack.add("");
     }
 
     @Inject(method = "removed", at = @At("HEAD"))
