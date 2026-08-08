@@ -9,6 +9,7 @@
     "chat.ChatScreenMixin",
     "chat.ChatScroll",
     "chat.ClientChatMixin",
+    "chat.CommandSuggestionsMixin",
     "game.ClientConnectionMixin",
     "game.LocalPlayerMixin",
     "input.KeyBoardMixin",

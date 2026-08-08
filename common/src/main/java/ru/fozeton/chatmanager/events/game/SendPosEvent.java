@@ -8,7 +8,7 @@ import net.minecraft.world.level.Level;
 
 @Getter
 @RequiredArgsConstructor
-public class SendPosInChatEvent extends Event<SendPosInChatEvent> {
+public class SendPosEvent extends Event<SendPosEvent> {
     private final LocalPlayer player;
     private final Level world;
     private final double x, y, z;

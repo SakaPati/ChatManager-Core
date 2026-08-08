@@ -15,7 +15,7 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.AliasConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
-import ru.fozeton.chatmanager.events.game.SendPosInChatEvent;
+import ru.fozeton.chatmanager.events.game.SendPosEvent;
 import ru.fozeton.chatmanager.messages.Message;
 
 @Mixin(ClientPacketListener.class)
@@ -42,7 +42,7 @@ public abstract class ClientChatMixin {
         if (chatmanager_core$aliasConfig.isEnabled()) {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player != null) {
-                ChatManagerCore.EVENT_BUS.activate(new SendPosInChatEvent(
+                ChatManagerCore.EVENT_BUS.activate(new SendPosEvent(
                         player,
                         player.level(),
                         player.getX(),
