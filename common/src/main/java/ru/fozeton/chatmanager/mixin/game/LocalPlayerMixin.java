@@ -1,11 +1,12 @@
 package ru.fozeton.chatmanager.mixin.game;
 
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import ru.fozeton.chatmanager.ChatManagerCore;
+import ru.fozeton.chatmanager.events.game.PlayerDeathEvent;
 
 @Mixin(LocalPlayer.class)
 public class LocalPlayerMixin {
@@ -13,11 +14,11 @@ public class LocalPlayerMixin {
     public void onPlayerDeath(byte eventId, CallbackInfo ci) {
         if (eventId == 3) {
             LocalPlayer player = (LocalPlayer) (Object) this;
-            int x = (int) Math.floor(player.getX());
-            int y = (int) Math.floor(player.getY());
-            int z = (int) Math.floor(player.getZ());
+            double x = Math.floor(player.getX());
+            double y = Math.floor(player.getY());
+            double z = Math.floor(player.getZ());
 
-            player.displayClientMessage(Component.literal(String.format("You death X: %s Y: %s Z: %s", x, y, z)).withColor(0xFFff0000), false);
+            ChatManagerCore.EVENT_BUS.activate(new PlayerDeathEvent(player, x, y, z));
         }
     }
 }

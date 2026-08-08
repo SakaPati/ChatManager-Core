@@ -1,11 +1,11 @@
-package ru.fozeton.chatmanager.utils;
+package ru.fozeton.chatmanager.module;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.config.MathConfig;
-import ru.fozeton.chatmanager.utils.math.MathConstantEnum;
-import ru.fozeton.chatmanager.utils.math.MathFunctionEnum;
+import ru.fozeton.chatmanager.module.math.MathConstantEnum;
+import ru.fozeton.chatmanager.module.math.MathFunctionEnum;
 
 import java.util.*;
 import java.util.stream.DoubleStream;

@@ -1,4 +1,4 @@
-package ru.fozeton.chatmanager.utils;
+package ru.fozeton.chatmanager.module;
 
 import com.ferra13671.megaevents.eventbus.EventSubscriber;
 import lombok.Getter;

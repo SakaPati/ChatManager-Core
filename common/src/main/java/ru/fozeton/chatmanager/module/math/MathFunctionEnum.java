@@ -1,4 +1,4 @@
-package ru.fozeton.chatmanager.utils.math;
+package ru.fozeton.chatmanager.module.math;
 
 import lombok.Getter;
 

@@ -1,6 +1,8 @@
 package ru.fozeton.chatmanager.mixin.chat;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,10 +15,11 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.AliasConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
+import ru.fozeton.chatmanager.events.game.SendPosInChatEvent;
 import ru.fozeton.chatmanager.messages.Message;
 
 @Mixin(ClientPacketListener.class)
-public class ClientChatMixin {
+public abstract class ClientChatMixin {
     @Unique
     private final AliasConfig chatmanager_core$aliasConfig = ChatConfigManager.getInstance().getAliasConfig();
 
@@ -37,6 +40,17 @@ public class ClientChatMixin {
     @ModifyVariable(method = "sendChat", at = @At("HEAD"), argsOnly = true)
     public String onSendChatModify(String string) {
         if (chatmanager_core$aliasConfig.isEnabled()) {
+            LocalPlayer player = Minecraft.getInstance().player;
+            if (player != null) {
+                ChatManagerCore.EVENT_BUS.activate(new SendPosInChatEvent(
+                        player,
+                        player.level(),
+                        player.getX(),
+                        player.getY(),
+                        player.getZ()
+                ));
+            }
+
             for (AliasConfig.Alias alias : chatmanager_core$aliasConfig.getAliases()) {
                 string = string.replace(alias.getKey(), alias.getValue());
             }

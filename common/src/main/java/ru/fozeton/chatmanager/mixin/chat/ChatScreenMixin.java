@@ -20,7 +20,7 @@ import ru.fozeton.chatmanager.config.AiStyleTextConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.InputEvent;
 import ru.fozeton.chatmanager.events.game.StylizeMessageEvent;
-import ru.fozeton.chatmanager.utils.ChatQueueManager;
+import ru.fozeton.chatmanager.module.ChatQueueManager;
 import ru.fozeton.chatmanager.utils.Logger;
 
 import java.net.URI;
