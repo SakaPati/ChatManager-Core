@@ -24,6 +24,19 @@ import java.nio.file.StandardCopyOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Handles Speech-to-Text (STT) transcription using the Vosk library.
+ * <p>
+ * This class captures audio from the system's default microphone and passes it
+ * to the Vosk recognizer to convert speech into text. It also handles the
+ * downloading and extraction of language models asynchronously.
+ * <p>
+ * Usage:
+ * <pre>
+ * SpeechToText stt = new SpeechToText.Builder(SpeechToText.Language.ENGLISH_US_SMALL).build();
+ * stt.transcription(); // Starts listening and firing events
+ * </pre>
+ */
 public class SpeechToText implements AutoCloseable {
     private final Logger log = new Logger(SpeechToText.class);
     private final HttpClient client = HttpClient.newHttpClient();
@@ -31,11 +44,24 @@ public class SpeechToText implements AutoCloseable {
     private final VoskModel model;
     private final Language language;
 
+    /**
+     * Private constructor used by the {@link Builder}.
+     *
+     * @param builder the builder instance containing the configured model and language
+     */
     private SpeechToText(Builder builder) {
         this.model = builder.model;
         this.language = builder.language;
     }
 
+    /**
+     * Checks if the specified model directory actually contains the Vosk model files.
+     * It ensures the directory is not empty or just contains an empty folder structure.
+     *
+     * @param path the path to the extracted Vosk model directory
+     * @return true if the directory has the required model files, false otherwise
+     * @throws IOException if an I/O error occurs when opening the directory
+     */
     private static boolean hasModelFiles(Path path) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "vosk-model*")) {
             boolean hasDir = false;
@@ -51,6 +77,16 @@ public class SpeechToText implements AutoCloseable {
         }
     }
 
+    /**
+     * Starts the audio capture and transcription process.
+     * Captures audio from the microphone line and feeds it to the Vosk recognizer.
+     * Fires events ({@link VoskResultEvent}, {@link VoskPartialResultEvent}) via the EventBus
+     * upon successful STT recognition.
+     *
+     * @throws IOException if the model files are missing or an I/O error occurs
+     * @throws RuntimeException if audio line initialization fails or Vosk encounters an error
+     * @throws IllegalStateException if the required Vosk model files are not found
+     */
     public void transcription() throws IOException, RuntimeException {
         Path languagePath = models.resolve(language.getPath());
 
@@ -101,6 +137,13 @@ public class SpeechToText implements AutoCloseable {
         }
     }
 
+    /**
+     * Downloads and extracts the specified Vosk language model asynchronously in a virtual thread.
+     * Fires {@link VoskModelDownloadSuccessEvent} on success or
+     * {@link VoskModelDownloadFailedEvent} on failure.
+     *
+     * @param languageModel the language model enum containing the download URL and paths
+     */
     public void download(Language languageModel) {
         Thread.ofVirtual()
                 .name("CM-Download-" + languageModel.name())
@@ -145,6 +188,10 @@ public class SpeechToText implements AutoCloseable {
         model.close();
     }
 
+    /**
+     * Enum representing available Vosk STT language models.
+     * Contains paths, exact model names, and approximate sizes in MB.
+     */
     @Getter
     public enum Language {
         ENGLISH_US_SMALL("en-us", "vosk-model-small-en-us-0.15", 40),
@@ -238,10 +285,22 @@ public class SpeechToText implements AutoCloseable {
         }
     }
 
+    /**
+     * Builder class for creating configured {@link SpeechToText} instances.
+     * Ensures that the requested Vosk language model is present locally before creation.
+     */
     public static class Builder {
         private final VoskModel model;
         private final Language language;
 
+        /**
+         * Initializes a builder with the requested language model.
+         *
+         * @param language the target STT language
+         * @throws IOException if model files are inaccessible or I/O error occurs
+         * @throws IllegalStateException if the model folder is absent
+         * @throws RuntimeException if the Vosk model fails to instantiate natively
+         */
         public Builder(Language language) throws IOException {
             Path models = ChatManagerCore.CONFIG_DIR.resolve("language_models");
             Path languagePath = models.resolve(language.getPath());
