@@ -10,7 +10,8 @@ import ru.fozeton.chatmanager.config.ChatConfigManager;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public interface ChatMessageParser {
@@ -64,8 +65,8 @@ public interface ChatMessageParser {
         ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
         if (!channelsConfig.isUseTimeFormatter()) return content;
 
-        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()));
+        String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(LocalDateTime.now(ZoneId.systemDefault()));
         int color = Long.decode(channelsConfig.getTimeColor()).intValue();
 
         Component timePart = Component.literal(time + " ")
