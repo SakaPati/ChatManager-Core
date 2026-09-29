@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import ru.fozeton.chatmanager.utils.KeyInputHandler;
+import ru.fozeton.chatmanager.utils.compat.handlers.KeyInputHandler;
 
 @Mixin(KeyboardHandler.class)
 public class KeyBoardMixin1_21_4 {

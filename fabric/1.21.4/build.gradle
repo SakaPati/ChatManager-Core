@@ -12,6 +12,8 @@ dependencies {
     }
     implementation "com.ferra13671:mega-events:1.7.1"
     include "com.ferra13671:mega-events:1.7.1"
+    implementation "blue.endless:jankson:1.2.3"
+    include "blue.endless:jankson:1.2.3"
 }
 
 java {

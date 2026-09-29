@@ -5,14 +5,12 @@
   "minVersion": "0.8",
   "client": [
     "ClientMixin",
-    "chat.AddedLocalMessage",
     "chat.ChatScreenMixin",
     "chat.ChatScroll",
     "chat.ClientChatMixin",
     "chat.CommandSuggestionsMixin",
     "game.ClientConnectionMixin",
-    "game.LocalPlayerMixin",
-    "input.MouseMixin"
+    "game.LocalPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

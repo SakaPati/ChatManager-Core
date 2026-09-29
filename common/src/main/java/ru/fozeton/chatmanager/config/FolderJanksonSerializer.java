@@ -1,11 +1,11 @@
 package ru.fozeton.chatmanager.config;
 
+import blue.endless.jankson.Jankson;
+import blue.endless.jankson.JsonGrammar;
+import blue.endless.jankson.JsonObject;
+import blue.endless.jankson.api.SyntaxError;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.serializer.ConfigSerializer;
-import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Jankson;
-import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.JsonGrammar;
-import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.JsonObject;
-import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.api.SyntaxError;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.utils.Logger;
 

@@ -44,6 +44,7 @@ subprojects {
 
         dependencies {
             implementation 'com.alphacephei:vosk:0.3.45'
+            implementation 'blue.endless:jankson:1.2.3'
             compileOnly 'org.projectlombok:lombok:1.18.48'
             annotationProcessor 'org.projectlombok:lombok:1.18.48'
             testImplementation platform('org.junit:junit-bom:5.11.0')

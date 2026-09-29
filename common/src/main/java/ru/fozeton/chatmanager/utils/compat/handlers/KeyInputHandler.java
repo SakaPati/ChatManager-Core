@@ -1,4 +1,4 @@
-package ru.fozeton.chatmanager.utils;
+package ru.fozeton.chatmanager.utils.compat.handlers;
 
 import com.ferra13671.megaevents.eventbus.IEventBus;
 import com.mojang.blaze3d.platform.InputConstants;

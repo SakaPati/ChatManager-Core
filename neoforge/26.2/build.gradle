@@ -25,6 +25,12 @@ dependencies {
             prefer '1.7.1'
         }
     }
+    jarJar(implementation("blue.endless:jankson")) {
+        version {
+            strictly '[1.2.3,1.3)'
+            prefer '1.2.3'
+        }
+    }
     implementation "me.shedaniel.cloth:cloth-config-neoforge:26.2.155"
 }
 

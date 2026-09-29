@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
-    "KeyBoardMixin1_21_4"
+    "AddedMessageMixin1_21_4",
+    "KeyBoardMixin1_21_4",
+    "MouseMixin1_21_4"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,4 +1,4 @@
-package ru.fozeton.chatmanager.mixin.input;
+package ru.fozeton.chatmanager.mixin;
 
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,7 +10,7 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.events.InputEvent;
 
 @Mixin(MouseHandler.class)
-public class MouseMixin {
+public class MouseMixin1_21_4 {
     @Shadow
     private double xpos;
 
@@ -19,7 +19,6 @@ public class MouseMixin {
 
     @Inject(method = "onPress", at = @At("HEAD"))
     public void modifyOnMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
-        InputEvent.MouseInputEvent event = new InputEvent.MouseInputEvent(window, button, action, xpos, ypos);
-        ChatManagerCore.EVENT_BUS.activate(event);
+        ru.fozeton.chatmanager.utils.compat.handlers.MouseHandler.handleClick(window, button, action, mods, xpos, ypos);
     }
 }

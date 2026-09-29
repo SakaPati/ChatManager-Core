@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 public class Gif {
     @Getter
     private static final Gif instance = new Gif();
-    private static final String BASE_URL = "https://api.klipy.com/api/v1/******/gifs/";
+    private static final String BASE_URL = "https://api.klipy.com/api/v1/***/gifs/";
     private final Path gifPath = ChatManagerCore.getConfigDir().resolve("cache");
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();

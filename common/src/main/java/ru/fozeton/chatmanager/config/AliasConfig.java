@@ -3,7 +3,8 @@ package ru.fozeton.chatmanager.config;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import me.shedaniel.autoconfig.annotation.Config;import me.shedaniel.autoconfig.annotation.ConfigEntry;
+import me.shedaniel.autoconfig.annotation.Config;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
 
 import java.util.LinkedList;
 import java.util.List;
