@@ -1,11 +1,7 @@
 plugins {
-    id 'dev.architectury.loom' version '1.14-SNAPSHOT' apply false
-    id 'architectury-plugin' version '3.4-SNAPSHOT'
-    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
-}
-
-architectury {
-    minecraft = project.minecraft_version
+    id 'net.fabricmc.fabric-loom' version '1.18-SNAPSHOT' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.18-SNAPSHOT' apply false
+    id 'net.neoforged.moddev' version '2.0.142' apply false
 }
 
 allprojects {
@@ -14,65 +10,58 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: 'dev.architectury.loom'
-    apply plugin: 'architectury-plugin'
-    apply plugin: 'maven-publish'
-
-    base {
-        // Set up a suffixed format for the mod jar names, e.g. `example-fabric`.
-        archivesName = "$rootProject.archives_name-$project.name"
-    }
-
     repositories {
+        mavenCentral()
         maven {
             name = "ferra13671-maven"
             url = "https://ferra13671.github.io/maven/"
         }
+        maven { url "https://maven.shedaniel.me/" }
     }
 
-    dependencies {
-        minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
-        mappings loom.officialMojangMappings()
-        implementation 'com.google.code.gson:gson:2.14.0'
-        testImplementation 'org.junit.jupiter:junit-jupiter-params'
-        testImplementation platform('org.junit:junit-bom:5.11.0')
-        testImplementation 'org.junit.jupiter:junit-jupiter'
-        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    }
+    pluginManager.withPlugin('java') {
+        base.archivesName = "${rootProject.archives_name}-${project.parent.name}-${project.name}"
 
-    java {
-        // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-        // if it is present.
-        // If you remove this line, sources will not be generated.
-        withSourcesJar()
+        java { withSourcesJar() }
 
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
+        def commonDir  = "$rootDir/common"
+        def versionDir = "$rootDir/common/versions/${project.name}"
 
-    tasks.withType(JavaCompile).configureEach {
-        it.options.release = 21
-    }
-
-    tasks.withType(Test).configureEach {
-        useJUnitPlatform()
-    }
-
-    // Configure Maven publishing.
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifactId = base.archivesName.get()
-                from components.java
+        sourceSets {
+            main {
+                java.srcDirs "$commonDir/src/main/java", "$versionDir/src/main/java"
+                resources.srcDirs "$commonDir/src/main/resources", "$versionDir/src/main/resources"
+            }
+            test {
+                java.srcDirs "$commonDir/src/test/java", "$versionDir/src/test/java"
+                resources.srcDirs "$commonDir/src/test/resources", "$versionDir/src/test/resources"
             }
         }
 
-        // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-        repositories {
-            // Add repositories to publish to here.
-            // Notice: This block does NOT have the same function as the block in the top level.
-            // The repositories here will be used for publishing your artifact, not for
-            // retrieving dependencies.
+        tasks.withType(AbstractCopyTask).configureEach {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
+
+        dependencies {
+            implementation 'com.alphacephei:vosk:0.3.45'
+            compileOnly 'org.projectlombok:lombok:1.18.48'
+            annotationProcessor 'org.projectlombok:lombok:1.18.48'
+            testImplementation platform('org.junit:junit-bom:5.11.0')
+            testImplementation 'org.junit.jupiter:junit-jupiter'
+            testImplementation 'org.junit.jupiter:junit-jupiter-params'
+            testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        }
+
+        tasks.withType(Test).configureEach { useJUnitPlatform() }
     }
+}
+
+tasks.register('buildAll') {
+    group = 'build'
+    dependsOn subprojects.collect { proj -> proj.tasks.matching { it.name == 'build' } }
+}
+
+tasks.register('build') {
+    group = 'build'
+    dependsOn tasks.named('buildAll')
 }

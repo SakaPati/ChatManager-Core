@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "ru.fozeton.chatmanager.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+    "KeyBoardMixin1_21_4"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

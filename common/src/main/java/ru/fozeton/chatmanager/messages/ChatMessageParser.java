@@ -1,17 +1,16 @@
 package ru.fozeton.chatmanager.messages;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import ru.fozeton.chatmanager.config.ChannelsConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
+import ru.fozeton.chatmanager.utils.compat.providers.HoverEventProvider;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.util.Date;
 import java.util.UUID;
 
 public interface ChatMessageParser {
@@ -65,15 +64,13 @@ public interface ChatMessageParser {
         ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
         if (!channelsConfig.isUseTimeFormatter()) return content;
 
-        String time = new SimpleDateFormat("HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()));
-        String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(LocalDateTime.now(ZoneId.systemDefault()));
+        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(new Date());
         int color = Long.decode(channelsConfig.getTimeColor()).intValue();
 
         Component timePart = Component.literal(time + " ")
                 .withColor(color)
-                .withStyle(style -> style.withHoverEvent(
-                        new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(fullDate))
-                ));
+                .withStyle(style -> style.withHoverEvent(HoverEventProvider.showText(Component.literal(fullDate))));
 
         return Component.empty().append(timePart).append(content);
     }

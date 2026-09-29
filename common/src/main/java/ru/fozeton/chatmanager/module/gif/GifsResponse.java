@@ -1,16 +1,16 @@
 package ru.fozeton.chatmanager.module.gif;
 
+import com.google.gson.annotations.SerializedName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class GifResponse {
-
+public class GifsResponse {
     private boolean result;
     private ResponseData data;
 
@@ -40,25 +40,8 @@ public class GifResponse {
         private FileContainer file;
         private List<String> tags;
         private String type;
-    }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class FileContainer {
-        private ImageDetails hd;
-        private ImageDetails md;
-        private ImageDetails sm;
-        private ImageDetails xs;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ImageDetails {
-        private String url;
-        private int width;
-        private int height;
-        private long size;
+        @SerializedName("blur_preview")
+        private String blurPreview;
     }
 }

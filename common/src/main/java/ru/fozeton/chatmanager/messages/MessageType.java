@@ -6,5 +6,6 @@ public enum MessageType {
     CLIENT,
     ERROR,
     MENTIONED,
+    ANIMATED,
     CUSTOM,
 }

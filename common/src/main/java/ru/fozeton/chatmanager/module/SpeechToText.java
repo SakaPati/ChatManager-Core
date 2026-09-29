@@ -40,7 +40,7 @@ import java.util.zip.ZipInputStream;
 public class SpeechToText implements AutoCloseable {
     private final Logger log = new Logger(SpeechToText.class);
     private final HttpClient client = HttpClient.newHttpClient();
-    private final Path models = ChatManagerCore.CONFIG_DIR.resolve("language_models");
+    private final Path models = ChatManagerCore.getConfigDir().resolve("language_models");
     private final VoskModel model;
     private final Language language;
 
@@ -302,7 +302,7 @@ public class SpeechToText implements AutoCloseable {
          * @throws RuntimeException if the Vosk model fails to instantiate natively
          */
         public Builder(Language language) throws IOException {
-            Path models = ChatManagerCore.CONFIG_DIR.resolve("language_models");
+            Path models = ChatManagerCore.getConfigDir().resolve("language_models");
             Path languagePath = models.resolve(language.getPath());
             Path modelPath = languagePath.resolve(language.getModel());
 

@@ -1,4 +1,8 @@
 package ru.fozeton.chatmanager.config;
 
-public interface IConfig {
+import me.shedaniel.autoconfig.ConfigData;
+
+public interface IConfig extends ConfigData {
+    default void applyDefaults() {
+    }
 }

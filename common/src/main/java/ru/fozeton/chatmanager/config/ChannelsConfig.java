@@ -3,6 +3,9 @@ package ru.fozeton.chatmanager.config;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import me.shedaniel.autoconfig.annotation.Config;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
+import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,6 +14,7 @@ import java.util.Map;
 
 @Getter
 @Setter
+@Config(name = "channels")
 public class ChannelsConfig implements IConfig {
     private boolean isUseTimeFormatter = true;
     private String timeColor = "0xFF55FF55";
@@ -18,12 +22,27 @@ public class ChannelsConfig implements IConfig {
     private int stripBackgroundAlpha = 255;
     private int sendMessageDelaySeconds = 1;
 
-    @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private final String _globalWebHook_ = "Global webhook is used to send ALL messages via HTTP";
+    @Comment("Global webhook is used to send ALL messages via HTTP")
     private WebHook globalWebHook = new WebHook();
+
+    @ConfigEntry.Gui.Excluded
     private Map<String, ChannelSettings> channels = new LinkedHashMap<>();
+    @ConfigEntry.Gui.CollapsibleObject
     private ChatHistory historyChat = new ChatHistory();
+
+    @Override
+    public void applyDefaults() {
+        ChannelSettings defaultSettings = new ChannelSettings();
+        defaultSettings.setId("Default");
+        defaultSettings.setName("Main");
+        defaultSettings.setX(15);
+        defaultSettings.setY(360);
+        defaultSettings.setWidth(400);
+        defaultSettings.setHeight(200);
+
+        channels.put("Default", defaultSettings);
+    }
 
     @Getter
     @Setter
@@ -52,16 +71,12 @@ public class ChannelsConfig implements IConfig {
         private int scrollWidth = 2;
         private int fadingStartTime = 10000;
         private int fadingDuration = 1000;
+        @ConfigEntry.Gui.CollapsibleObject
         private EditMode editMode = new EditMode();
-
-        @Getter(AccessLevel.NONE)
-        @Setter(AccessLevel.NONE)
-        private final String _webHook_ = "Local webhook takes priority over the global one. Even if the global webhook is enabled, the local one will be used for sending.";
+        @ConfigEntry.Gui.CollapsibleObject
+        @Comment("Local webhook takes priority over the global one. Even if the global webhook is enabled, the local one will be used for sending.")
         private WebHook webHook = new WebHook();
-
-        @Getter(AccessLevel.NONE)
-        @Setter(AccessLevel.NONE)
-        private final String _isChannelIgnore_ = "If true, messages from this channel will NEVER be sent to any webhook (neither local nor global), regardless of webHook and globalWebHook settings.";
+        @Comment("If true, messages from this channel will NEVER be sent to any webhook (neither local nor global).")
         private boolean isChannelIgnore = false;
     }
 
@@ -88,9 +103,8 @@ public class ChannelsConfig implements IConfig {
         private String url = "";
         private boolean enable = false;
 
-        @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
-        private final String _cleanText_ = "Webhook text delivery mode. false (default) - sends a serialized Component (JSON with colors and formatting). true - sends plain text without formatting.";
+        @Comment("false (default) - sends a serialized Component (JSON with colors and formatting). true - sends plain text without formatting.")
         private boolean cleanText = false;
     }
 }

@@ -9,10 +9,10 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 import ru.fozeton.chatmanager.channel.ChatChannel;
+import ru.fozeton.chatmanager.utils.compat.providers.ClickEventProvider;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -56,42 +56,8 @@ public class Message {
     }
 
     public void setClickEvent(ClickEvent.Action action, String value, @Nullable String commandPrefix) {
-        if (commandPrefix != null) {
-            MutableComponent replaced = tryReplace(this.content, commandPrefix, action, value);
-            if (replaced != null) {
-                this.content = replaced;
-                this.style = replaced.getStyle();
-                return;
-            }
-        }
-
-        ClickEvent clickEvent = style.getClickEvent();
-        String newValue = clickEvent == null ? value : value + " \"" + clickEvent.getValue() + "\"";
-        this.style = style.withClickEvent(new ClickEvent(action, newValue));
-        this.content = content.copy().setStyle(this.style);
-    }
-
-    private @Nullable MutableComponent tryReplace(Component node, String commandPrefix, ClickEvent.Action action, String value) {
-        ClickEvent existing = node.getStyle().getClickEvent();
-
-        if (existing != null && existing.getValue().startsWith(commandPrefix)) {
-            String newValue = value + " \"" + existing.getValue() + "\"";
-            Style newStyle = node.getStyle().withClickEvent(new ClickEvent(action, newValue));
-            return node.copy().setStyle(newStyle);
-        }
-
-        List<Component> siblings = node.getSiblings();
-        for (int i = 0; i < siblings.size(); i++) {
-            MutableComponent replacedChild = tryReplace(siblings.get(i), commandPrefix, action, value);
-            if (replacedChild != null) {
-                MutableComponent rebuilt = node.plainCopy().setStyle(node.getStyle());
-                for (int j = 0; j < siblings.size(); j++) {
-                    rebuilt.append(j == i ? replacedChild : siblings.get(j));
-                }
-                return rebuilt;
-            }
-        }
-        return null;
+        this.content = ClickEventProvider.applyClickEvent(this.content, action, value, commandPrefix);
+        this.style = this.content.getStyle();
     }
 
     public MutableComponent getMutContent() {

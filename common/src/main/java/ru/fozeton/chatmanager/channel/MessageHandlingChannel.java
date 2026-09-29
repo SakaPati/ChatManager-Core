@@ -4,9 +4,7 @@ import com.ferra13671.megaevents.eventbus.EventSubscriber;
 import com.google.gson.Gson;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.ChannelsConfig;
@@ -17,6 +15,7 @@ import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
 import ru.fozeton.chatmanager.utils.Logger;
+import ru.fozeton.chatmanager.utils.compat.providers.ComponentSerializerProvider;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -75,9 +74,7 @@ public class MessageHandlingChannel {
     }
 
     protected void onNetworkDispatch(Message message) {
-        ClientLevel level = Minecraft.getInstance().level;
         ChatChannel messageChannel = message.getChannel();
-        if (level == null) return;
         ChannelsConfig.WebHook localWebHook = null;
         ChannelsConfig.WebHook globalWebHook = channelsConfig.getGlobalWebHook();
         if (messageChannel != null) {
@@ -92,7 +89,7 @@ public class MessageHandlingChannel {
         if (targetUrl == null) return;
 
         try {
-            String payload = resolveWebhookCleanText(localWebHook, globalWebHook) ? message.getPlainText() : Component.Serializer.toJson(message.getContent(), level.registryAccess());
+            String payload = resolveWebhookCleanText(localWebHook, globalWebHook) ? message.getPlainText() : ComponentSerializerProvider.toJson(message.getContent());
             NetworkMessage networkMessage = new NetworkMessage(payload);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(targetUrl))

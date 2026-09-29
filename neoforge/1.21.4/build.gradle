@@ -1,0 +1,42 @@
+plugins { id 'net.neoforged.moddev' }
+
+def neoVersion = '21.4.157'
+
+repositories {
+    maven { url = 'https://maven.neoforged.net/releases' }
+}
+
+neoForge {
+    version = neoVersion
+
+    runs {
+        client { client() }
+    }
+
+    mods {
+        chatmanager_core { sourceSet sourceSets.main }
+    }
+}
+
+dependencies {
+    jarJar(implementation("com.ferra13671:mega-events")) {
+        version {
+            strictly '[1.7.1,2.0)'
+            prefer '1.7.1'
+        }
+    }
+
+    additionalRuntimeClasspath "com.ferra13671:mega-events:1.7.1"
+    implementation "me.shedaniel.cloth:cloth-config-neoforge:17.0.144"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+tasks.withType(JavaCompile).configureEach { options.release = 21 }
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') { expand version: project.version }
+}

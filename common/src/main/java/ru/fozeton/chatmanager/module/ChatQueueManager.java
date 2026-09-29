@@ -20,7 +20,7 @@ public class ChatQueueManager {
     private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
     @Nullable
     private ClientPacketListener connection;
-    private int delay = 0;
+    private int delay = -1;
 
     private ChatQueueManager() {
         ChatManagerCore.EVENT_BUS.register(this);
@@ -33,13 +33,12 @@ public class ChatQueueManager {
 
     @EventSubscriber(event = SecondElapsedEvent.class)
     public void sendChunkMessage() {
-        delay++;
-        if (connection == null || chunks.isEmpty() || delay < channelsConfig.getSendMessageDelaySeconds()) return;
+        if (connection == null || chunks.isEmpty()) return;
 
-        String chunk = chunks.poll();
-        if (chunk != null) {
-            connection.sendChat(chunk);
+        if (delay == -1 || delay >= channelsConfig.getSendMessageDelaySeconds()) {
+            String chunk = chunks.poll();
+            if (chunk != null) connection.sendChat(chunk);
             delay = 0;
-        }
+        } else delay++;
     }
 }

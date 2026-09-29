@@ -1,0 +1,26 @@
+plugins { id 'net.fabricmc.fabric-loom' }
+
+def mcVersion = '26.2'
+def loaderVersion = '0.18.4'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcVersion}"
+    implementation "net.fabricmc:fabric-loader:${loaderVersion}"
+    implementation("me.shedaniel.cloth:cloth-config-fabric:26.2.155") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
+    implementation "com.ferra13671:mega-events:1.7.1"
+    include "com.ferra13671:mega-events:1.7.1"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}

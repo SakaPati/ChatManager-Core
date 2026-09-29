@@ -1,0 +1,20 @@
+[package]
+name = "mcanim-impl"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+webp-animation = "0.10.0"
+byteorder = "1"
+flate2 = { version = "1.1.9", default-features = false, features = ["rust_backend"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lib]
+name = "mcanim_impl"
+crate-type = ["cdylib"] # Этот флаг заставляет Rust создать .dll

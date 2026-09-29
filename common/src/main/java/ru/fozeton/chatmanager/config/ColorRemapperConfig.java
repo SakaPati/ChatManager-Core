@@ -2,15 +2,20 @@ package ru.fozeton.chatmanager.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.shedaniel.autoconfig.annotation.Config;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Getter
 @Setter
-public class ColorRemapperConfig implements IConfig{
+@Config(name = "colorRemapper")
+public class ColorRemapperConfig implements IConfig {
     private float saturation = 0.65f;
     private float brightness = 0.75f;
+
+    @ConfigEntry.Gui.Excluded
     private Map<String, String> remaps = new LinkedHashMap<>();
 
     public Integer getRemapColor(int rgb) {

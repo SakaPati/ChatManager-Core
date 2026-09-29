@@ -2,7 +2,6 @@ package ru.fozeton.chatmanager;
 
 import com.ferra13671.megaevents.eventbus.IEventBus;
 import com.ferra13671.megaevents.eventbus.impl.EventBus;
-import dev.architectury.platform.Platform;
 import lombok.Getter;
 import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
@@ -23,10 +22,13 @@ public final class ChatManagerCore {
     @Getter
     @Setter
     private static ChatMessageParser messageParser = new DefaultMessage();
-    public static final Path CONFIG_DIR = Platform.getConfigFolder().resolve("ChatManager-Core");
+    private static Path configDir;
+    private static Path gameDir;
 
-    public static void init() {
-        DependencyLoader.loadDependencies(CONFIG_DIR.resolve("libs"));
+    public static void init(Path configFolder) {
+        configDir = configFolder.resolve("ChatManager-Core");
+        gameDir = configFolder.getParent();
+        DependencyLoader.loadDependencies(configDir.resolve("libs"));
         TickCounter.getInstance();
         registerChannel("Default", new ChatChannel("Default", "Основной"));
     }
@@ -37,5 +39,15 @@ public final class ChatManagerCore {
 
     public static void unregisterChannel(String channelId) {
         channels.remove(channelId);
+    }
+
+    public static Path getConfigDir() {
+        if (configDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        return configDir;
+    }
+
+    public static Path getGameDir() {
+        if (gameDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        return gameDir;
     }
 }

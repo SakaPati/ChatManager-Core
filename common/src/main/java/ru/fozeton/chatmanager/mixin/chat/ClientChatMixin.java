@@ -1,8 +1,11 @@
 package ru.fozeton.chatmanager.mixin.chat;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.CommonListenerCookie;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,22 +20,46 @@ import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
 import ru.fozeton.chatmanager.events.game.SendPosEvent;
 import ru.fozeton.chatmanager.messages.Message;
+import ru.fozeton.chatmanager.messages.MessageType;
+import ru.fozeton.chatmanager.utils.compat.providers.PacketCompatProvider;
+
+import java.util.regex.Pattern;
 
 @Mixin(ClientPacketListener.class)
-public abstract class ClientChatMixin {
+public abstract class ClientChatMixin extends ClientCommonPacketListenerImpl {
+    @Unique
+    private static final Pattern GIF_PATTERN = Pattern.compile(":\\d{15,19}:");
     @Unique
     private final AliasConfig chatmanager_core$aliasConfig = ChatConfigManager.getInstance().getAliasConfig();
 
+    protected ClientChatMixin(
+            Minecraft minecraft,
+            Connection connection,
+            CommonListenerCookie commonListenerCookie
+    ) {
+        super(minecraft, connection, commonListenerCookie);
+    }
+
     @Inject(method = "handlePlayerChat", at = @At(value = "HEAD"), cancellable = true)
     public void playerChatHandler(ClientboundPlayerChatPacket clientboundPlayerChatPacket, CallbackInfo ci) {
+        PacketCompatProvider.ensureRunningOnSameThread(
+                clientboundPlayerChatPacket,
+                (ClientPacketListener) (Object) this
+        );
         Message msg = ChatManagerCore.getMessageParser().parsePlayerChat(clientboundPlayerChatPacket);
+        if (GIF_PATTERN.matcher(msg.getPlainText()).find()) msg.setType(MessageType.ANIMATED);
         ChatManagerCore.EVENT_BUS.activate(new MessageReceivedEvent(msg));
         ci.cancel();
     }
 
     @Inject(method = "handleSystemChat", at = @At(value = "HEAD"), cancellable = true)
     public void systemChatHandler(ClientboundSystemChatPacket clientboundSystemChatPacket, CallbackInfo ci) {
+        PacketCompatProvider.ensureRunningOnSameThread(
+                clientboundSystemChatPacket,
+                (ClientPacketListener) (Object) this
+        );
         Message msg = ChatManagerCore.getMessageParser().parseSystemChat(clientboundSystemChatPacket);
+        if (GIF_PATTERN.matcher(msg.getPlainText()).find()) msg.setType(MessageType.ANIMATED);
         ChatManagerCore.EVENT_BUS.activate(new MessageReceivedEvent(msg));
         ci.cancel();
     }
