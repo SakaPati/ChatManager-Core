@@ -85,4 +85,8 @@ public class ChatConfigManager {
     public MathConfig getMathConfig() {
         return getOrLoad(MathConfig.class);
     }
+
+    public VoiceConfig getVoiceConfig() {
+        return getOrLoad(VoiceConfig.class);
+    }
 }

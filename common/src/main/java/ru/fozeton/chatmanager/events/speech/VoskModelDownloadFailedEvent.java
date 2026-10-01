@@ -8,6 +8,6 @@ import ru.fozeton.chatmanager.module.SpeechToText;
 @Getter
 @RequiredArgsConstructor
 public class VoskModelDownloadFailedEvent extends Event<VoskModelDownloadFailedEvent> {
-    private final SpeechToText.Language model;
+    private final SpeechToText.Language language;
     private final Exception exception;
 }

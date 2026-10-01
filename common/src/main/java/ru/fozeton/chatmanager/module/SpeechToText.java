@@ -4,8 +4,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.Getter;
 import ru.fozeton.chatmanager.ChatManagerCore;
+import ru.fozeton.chatmanager.config.ChatConfigManager;
+import ru.fozeton.chatmanager.config.VoiceConfig;
 import ru.fozeton.chatmanager.events.speech.*;
 import ru.fozeton.chatmanager.utils.Logger;
+import ru.fozeton.chatmanager.utils.stt.VoiceIndicator;
 import ru.fozeton.chatmanager.utils.stt.VoskContext;
 import ru.fozeton.chatmanager.utils.stt.VoskModel;
 import ru.fozeton.chatmanager.utils.stt.VoskRecognizer;
@@ -21,26 +24,62 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.zip.ZipEntry;
+import java.util.Comparator;import java.util.stream.Stream;import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Handles Speech-to-Text (STT) transcription using the Vosk library.
+ * Handles offline Speech-to-Text (STT) transcription using the Vosk library.
  * <p>
  * This class captures audio from the system's default microphone and passes it
  * to the Vosk recognizer to convert speech into text. It also handles the
  * downloading and extraction of language models asynchronously.
  * <p>
+ * Loading a model is expensive (up to several GB of native memory and a long load time),
+ * so the loaded model is cached statically. Always obtain instances through
+ * {@link #get(Language)} instead of creating a {@link Builder} manually, and release
+ * the memory with {@link #unload()} when the model is no longer needed
+ * (game exit, model switch, model deletion).
+ * <p>
  * Usage:
  * <pre>
- * SpeechToText stt = new SpeechToText.Builder(SpeechToText.Language.ENGLISH_US_SMALL).build();
- * stt.transcription(); // Starts listening and firing events
+ * SpeechToText.get(SpeechToText.Language.RUSSIAN_SMALL).transcription(); // blocks until recognition ends
  * </pre>
+ * <p>
+ * Model state:
+ * <ul>
+ *     <li>{@link #isInstalled(Language)} - check whether a model exists on disk;</li>
+ *     <li>{@link #download(Language)} - download a model (async, reports via events);</li>
+ *     <li>{@link #get(Language)} - load a model into memory (cached);</li>
+ *     <li>{@link #unload()} - free the cached model.</li>
+ * </ul>
+ * <p>
+ * Instances are not meant to run {@link #transcription()} concurrently: the native
+ * model must not be unloaded while a recognition is in progress.
  */
-public class SpeechToText implements AutoCloseable {
-    private final Logger log = new Logger(SpeechToText.class);
-    private final HttpClient client = HttpClient.newHttpClient();
-    private final Path models = ChatManagerCore.getConfigDir().resolve("language_models");
+public class SpeechToText {
+    private static final Logger log = new Logger(SpeechToText.class);
+    private static final HttpClient client = HttpClient.newHttpClient();
+
+    /**
+     * Root directory where all language models are stored: {@code <config>/language_models}.
+     */
+    private static final Path models = ChatManagerCore.getConfigDir().resolve("language_models");
+
+    /**
+     * Currently loaded instance, or {@code null} if nothing is loaded. Guarded by the class monitor.
+     */
+    private static SpeechToText cached;
+
+    /**
+     * Language of {@link #cached}. Guarded by the class monitor.
+     */
+    private static Language cachedLanguage;
+
+    private final VoiceConfig config = ChatConfigManager.getInstance().getVoiceConfig();
+
+    /**
+     * Native Vosk model owned by this instance. Closed only through {@link #unload()}.
+     */
     private final VoskModel model;
     private final Language language;
 
@@ -55,14 +94,14 @@ public class SpeechToText implements AutoCloseable {
     }
 
     /**
-     * Checks if the specified model directory actually contains the Vosk model files.
-     * It ensures the directory is not empty or just contains an empty folder structure.
+     * Checks that the specified language directory does NOT contain an extracted Vosk model folder.
+     * Note the inverted meaning: {@code true} means the model is missing.
      *
-     * @param path the path to the extracted Vosk model directory
-     * @return true if the directory has the required model files, false otherwise
+     * @param path the path to the language directory (e.g. {@code language_models/ru})
+     * @return true if no {@code vosk-model*} subdirectory exists, false otherwise
      * @throws IOException if an I/O error occurs when opening the directory
      */
-    private static boolean hasModelFiles(Path path) throws IOException {
+    private static boolean isModelMissing(Path path) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "vosk-model*")) {
             boolean hasDir = false;
 
@@ -78,73 +117,87 @@ public class SpeechToText implements AutoCloseable {
     }
 
     /**
-     * Starts the audio capture and transcription process.
-     * Captures audio from the microphone line and feeds it to the Vosk recognizer.
-     * Fires events ({@link VoskResultEvent}, {@link VoskPartialResultEvent}) via the EventBus
-     * upon successful STT recognition.
+     * Returns a ready-to-use instance for the given language, loading the model if needed.
+     * <p>
+     * If the requested language is already loaded, the cached instance is returned immediately.
+     * If a different language is cached, it is unloaded first and the new one is loaded, so at most
+     * one model is kept in memory at a time. The first call for a language is slow, since the model
+     * is read from disk.
+     * <p>
+     * If loading fails, nothing is cached and the next call retries from scratch.
      *
-     * @throws IOException if the model files are missing or an I/O error occurs
-     * @throws RuntimeException if audio line initialization fails or Vosk encounters an error
-     * @throws IllegalStateException if the required Vosk model files are not found
+     * @param language the language model to load
+     * @return the cached or newly created instance
+     * @throws RuntimeException if the model is missing or fails to load natively
+     *                          (in that case a {@link VoskModelAbsentEvent} is fired by the {@link Builder})
      */
-    public void transcription() throws IOException, RuntimeException {
-        Path languagePath = models.resolve(language.getPath());
+    public static synchronized SpeechToText get(Language language) {
+        if (cached != null && cachedLanguage == language) return cached;
 
-        if (!Files.exists(languagePath)) Files.createDirectories(languagePath);
+        unload();
+        cached = new Builder(language).build();
+        cachedLanguage = language;
+        return cached;
+    }
 
-        if (hasModelFiles(languagePath)) {
-            ChatManagerCore.EVENT_BUS.activate(new VoskModelAbsentEvent());
-            throw new IllegalStateException("Vosk model files not found: " + languagePath);
+    /**
+     * Unloads the cached model and releases its native memory. Does nothing if no model is loaded.
+     * <p>
+     * Must not be called while {@link #transcription()} is running on the cached instance,
+     * as the native code may crash the JVM. Call it on game shutdown, before switching or
+     * deleting a model on disk (open files may be locked on Windows).
+     */
+    public static synchronized void unload() {
+        if (cached != null) {
+            cached.model.close();
+            cached = null;
+            cachedLanguage = null;
         }
+    }
 
-        AudioFormat format = new AudioFormat(16000.0f, 16, 1, true, false);
-        DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+    /** True while transcription() is running; the cached model must not be unloaded or deleted then. */
+    private static volatile boolean busy;
 
-        if (!AudioSystem.isLineSupported(info)) {
-            ChatManagerCore.EVENT_BUS.activate(new VoskNotSupportMicroEvent());
-            return;
-        }
+    /**
+     * Deletes the model folder from disk. If the model is currently loaded in memory, it is unloaded first.
+     *
+     * @param language the model to delete
+     * @return true if the model is gone, false if it is in use (recording) or deletion failed
+     */
+    public static synchronized boolean delete(Language language) {
+        if (busy && cachedLanguage == language) return false;
+        if (cachedLanguage == language) unload();
 
-        try (
-                TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
-                InputStream ais = new AudioInputStream(line);
-                VoskRecognizer recognizer = VoskContext.getFactory().createRecognizer(model, 16000)
-        ) {
-            line.open(format);
-            line.start();
+        Path dir = models.resolve(language.getPath()).resolve(language.getModel());
+        if (!Files.exists(dir)) return true;
 
-            int nbytes;
-            byte[] b = new byte[4096];
-            while ((nbytes = ais.read(b)) >= 0) {
-                if (recognizer.acceptWaveForm(b, nbytes)) {
-                    String rawResult = recognizer.getResult();
-
-                    JsonObject jsonObject = JsonParser.parseString(rawResult).getAsJsonObject();
-                    String result = jsonObject.get("text").getAsString();
-
-                    ChatManagerCore.EVENT_BUS.activate(new VoskResultEvent(result));
-                    return;
-                } else {
-                    String rawPartialResult = recognizer.getPartialResult();
-                    JsonObject jsonObject = JsonParser.parseString(rawPartialResult).getAsJsonObject();
-                    String partialResult = jsonObject.get("partial").getAsString();
-
-                    ChatManagerCore.EVENT_BUS.activate(new VoskPartialResultEvent(partialResult));
-                }
+        try (Stream<Path> walk = Files.walk(dir)) {
+            for (Path p : (Iterable<Path>) walk.sorted(Comparator.reverseOrder())::iterator) {
+                Files.delete(p);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            return true;
+        } catch (IOException e) {
+            log.error("Error deleting model " + language + ": " + e);
+            return false;
         }
     }
 
     /**
      * Downloads and extracts the specified Vosk language model asynchronously in a virtual thread.
-     * Fires {@link VoskModelDownloadSuccessEvent} on success or
-     * {@link VoskModelDownloadFailedEvent} on failure.
+     * Returns immediately. Fires {@link VoskModelDownloadSuccessEvent} on success or
+     * {@link VoskModelDownloadFailedEvent} on failure; these events are fired from the download
+     * thread, not from the main thread.
+     * <p>
+     * The archive is streamed and extracted on the fly into {@code language_models/<path>/}.
+     * Calling this method twice for the same model starts two parallel downloads, so the caller
+     * should track which models are already downloading.
+     * <p>
+     * Note: extraction is not atomic. If the connection drops mid-way, a partially extracted
+     * model folder may remain on disk and {@link #isInstalled(Language)} will report it as installed.
      *
      * @param languageModel the language model enum containing the download URL and paths
      */
-    public void download(Language languageModel) {
+    public static void download(Language languageModel) {
         Thread.ofVirtual()
                 .name("CM-Download-" + languageModel.name())
                 .start(() -> {
@@ -183,14 +236,96 @@ public class SpeechToText implements AutoCloseable {
                 });
     }
 
-    @Override
-    public void close() {
-        model.close();
+    /**
+     * Checks whether the model folder of the given language exists on disk.
+     * This only checks for the directory, not the integrity of its contents.
+     *
+     * @param language the language model to check
+     * @return true if {@code language_models/<path>/<model>} is an existing directory
+     */
+    public static boolean isInstalled(Language language) {
+        return Files.isDirectory(models.resolve(language.getPath()).resolve(language.getModel()));
+    }
+
+    /**
+     * Starts the audio capture and transcription process. This call BLOCKS the current thread,
+     * so run it off the main thread (e.g. in a virtual thread).
+     * <p>
+     * Captures audio from the default microphone (16 kHz, 16-bit, mono) and feeds it to a new
+     * Vosk recognizer. While the user speaks, {@link VoskPartialResultEvent} is fired with the
+     * intermediate text. Recognition finishes when Vosk reports a final result AND no voice
+     * (level &gt;= 0.15) has been detected for {@link VoiceConfig#getVoiceDelayMs()} milliseconds;
+     * then {@link VoskResultEvent} is fired with the final text and the method returns.
+     * <p>
+     * If the microphone line is not supported, {@link VoskNotSupportMicroEvent} is fired and the
+     * method returns without throwing. {@link VoiceIndicator#finished()} is always called on exit.
+     *
+     * @throws IOException      if an I/O error occurs while preparing the language directory
+     * @throws RuntimeException if audio line initialization fails or Vosk encounters an error
+     */
+    public void transcription() throws IOException, RuntimeException {
+        Path languagePath = models.resolve(language.getPath());
+        long lastActiveVoice = 0;
+
+        if (!Files.exists(languagePath)) Files.createDirectories(languagePath);
+
+        AudioFormat format = new AudioFormat(16000.0f, 16, 1, true, false);
+        DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
+        if (!AudioSystem.isLineSupported(info)) {
+            ChatManagerCore.EVENT_BUS.activate(new VoskNotSupportMicroEvent());
+            VoiceIndicator.error();
+            return;
+        }
+
+        busy = true;
+        try (
+                TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
+                InputStream ais = new AudioInputStream(line);
+                VoskRecognizer recognizer = VoskContext.getFactory().createRecognizer(model, 16000)
+        ) {
+            line.open(format);
+            line.start();
+            VoiceIndicator.listening();
+
+            int nbytes;
+            byte[] b = new byte[4096];
+            while ((nbytes = ais.read(b)) >= 0) {
+                float level = VoiceIndicator.audio(b, nbytes);
+                long millis = System.currentTimeMillis();
+                if (level >= 0.15) lastActiveVoice = millis;
+                if (recognizer.acceptWaveForm(b, nbytes) && (millis > lastActiveVoice + config.getVoiceDelayMs())) {
+                    String rawResult = recognizer.getResult();
+
+                    JsonObject jsonObject = JsonParser.parseString(rawResult).getAsJsonObject();
+                    String result = jsonObject.get("text").getAsString();
+
+                    ChatManagerCore.EVENT_BUS.activate(new VoskResultEvent(result));
+                    return;
+                } else {
+                    String rawPartialResult = recognizer.getPartialResult();
+                    JsonObject jsonObject = JsonParser.parseString(rawPartialResult).getAsJsonObject();
+                    String partialResult = jsonObject.get("partial").getAsString();
+
+                    ChatManagerCore.EVENT_BUS.activate(new VoskPartialResultEvent(partialResult));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            busy = false;
+            VoiceIndicator.finished();
+        }
     }
 
     /**
      * Enum representing available Vosk STT language models.
-     * Contains paths, exact model names, and approximate sizes in MB.
+     * Contains the language folder, the exact model name, the download URL and the approximate size in MB.
+     * <p>
+     * Models are stored as {@code language_models/<path>/<model>/} and downloaded from
+     * {@code https://alphacephei.com/vosk/models/<model>.zip}. Several models can share the same
+     * {@code path} (e.g. small and full versions of one language).
+     * The enum constant name (e.g. {@code RUSSIAN_SMALL}) is what {@link VoiceConfig#getModel()} stores.
      */
     @Getter
     public enum Language {
@@ -272,9 +407,24 @@ public class SpeechToText implements AutoCloseable {
         GEORGIAN("ka", "vosk-model-ka-0.42", 700),
         SPEAKER_ID("spk", "vosk-model-spk-0.4", 13);
 
+        /**
+         * Language folder under {@code language_models}, e.g. {@code ru}, {@code en-us}.
+         */
         private final String path;
+
+        /**
+         * Exact model name, also the name of the extracted folder, e.g. {@code vosk-model-small-ru-0.22}.
+         */
         private final String model;
+
+        /**
+         * Full URL of the model archive.
+         */
         private final String downloadPath;
+
+        /**
+         * Approximate model size in megabytes (archive/extracted, for display purposes).
+         */
         private final int sizeMb;
 
         Language(String path, String model, int sizeMb) {
@@ -287,34 +437,32 @@ public class SpeechToText implements AutoCloseable {
 
     /**
      * Builder class for creating configured {@link SpeechToText} instances.
-     * Ensures that the requested Vosk language model is present locally before creation.
+     * Loads the native Vosk model from disk. Prefer {@link SpeechToText#get(Language)},
+     * which wraps this builder with caching; creating instances manually bypasses the cache
+     * and leaves the model's native memory unmanaged.
      */
     public static class Builder {
         private final VoskModel model;
         private final Language language;
 
         /**
-         * Initializes a builder with the requested language model.
+         * Loads the requested language model from {@code language_models/<path>/<model>}.
+         * This is a slow, memory-heavy operation for large models.
          *
          * @param language the target STT language
-         * @throws IOException if model files are inaccessible or I/O error occurs
-         * @throws IllegalStateException if the model folder is absent
-         * @throws RuntimeException if the Vosk model fails to instantiate natively
+         * @throws RuntimeException if the model is missing or fails to instantiate natively;
+         *                          a {@link VoskModelAbsentEvent} with the expected path is fired first
          */
-        public Builder(Language language) throws IOException {
+        public Builder(Language language) {
             Path models = ChatManagerCore.getConfigDir().resolve("language_models");
             Path languagePath = models.resolve(language.getPath());
             Path modelPath = languagePath.resolve(language.getModel());
-
-            if (hasModelFiles(languagePath)) {
-                ChatManagerCore.EVENT_BUS.activate(new VoskModelAbsentEvent());
-                throw new IllegalStateException("Vosk model files not found: " + modelPath);
-            }
 
             try {
                 this.model = VoskContext.getFactory().createModel(modelPath.toString());
                 this.language = language;
             } catch (Exception e) {
+                ChatManagerCore.EVENT_BUS.activate(new VoskModelAbsentEvent(modelPath));
                 throw new RuntimeException(e);
             }
         }

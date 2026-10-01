@@ -40,4 +40,8 @@ public class ScreenProvider {
     public static void renderHoverEffect(GraphicsProvider graphics, Font font, Style style, int mouseX, int mouseY) {
         require().renderHoverEffect(graphics, font, style, mouseX, mouseY);
     }
+
+    public static boolean isChatScreen(){
+        return require().isChatScreen();
+    }
 }

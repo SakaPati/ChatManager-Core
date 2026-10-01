@@ -8,5 +8,5 @@ import ru.fozeton.chatmanager.module.SpeechToText;
 @Getter
 @RequiredArgsConstructor
 public class VoskModelDownloadSuccessEvent extends Event<VoskModelDownloadSuccessEvent> {
-    private final SpeechToText.Language model;
+    private final SpeechToText.Language language;
 }

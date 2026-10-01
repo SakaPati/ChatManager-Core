@@ -46,7 +46,6 @@ public class KeyInputHandler {
                 eventAction,
                 modifiers
         );
-        System.out.println(event);
         eventBus.activate(event);
     }
 }
