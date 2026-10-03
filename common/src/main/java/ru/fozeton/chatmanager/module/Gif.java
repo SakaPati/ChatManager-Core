@@ -1,16 +1,18 @@
 package ru.fozeton.chatmanager.module;
 
 import com.google.gson.Gson;
+import com.mojang.authlib.GameProfile;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.client.Minecraft;
 import ru.fozeton.chatmanager.ChatManagerCore;
-import ru.fozeton.chatmanager.module.gif.GifResponse;
 import ru.fozeton.chatmanager.module.gif.GifsResponse;
-import ru.fozeton.chatmanager.module.gif.McAnim;
+import ru.fozeton.chatmanager.module.gif.McAnim;import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -18,92 +20,149 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Gif {
+    public static final int PER_PAGE = 24;
+
     @Getter
     private static final Gif instance = new Gif();
-    private static final String BASE_URL = "https://api.klipy.com/api/v1/**/gifs/";
+    private static final String BASE_URL = "https://core.chatmanager.workers.dev/gifs/";
+    private static final Executor EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private final Path gifPath = ChatManagerCore.getConfigDir().resolve("cache");
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
+    private static boolean isNotWebp(byte[] bytes) {
+        return bytes == null || bytes.length <= 12
+               || bytes[0] != 'R' || bytes[1] != 'I' || bytes[2] != 'F' || bytes[3] != 'F'
+               || bytes[8] != 'W' || bytes[9] != 'E' || bytes[10] != 'B' || bytes[11] != 'P';
+    }
+
+    private String customerParam() {
+        String id = String.format("%s_%s", GameProfileProvider.getName(), GameProfileProvider.getId());
+        return "&customer_id=" + URLEncoder.encode(id, UTF_8);
+    }
+
     public CompletableFuture<Boolean> download(String gifId) {
-        return CompletableFuture.supplyAsync(() -> {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + gifId))
-                    .GET()
-                    .build();
+        return download(gifId, gifPath.toString());
+    }
 
-            try {
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                GifResponse gifResponse = gson.fromJson(response.body(), GifResponse.class);
-                HttpRequest gifRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(gifResponse.getData().getFile().getXs().getAnimated().getUrl()))
-                        .GET()
-                        .build();
+    public CompletableFuture<Boolean> download(String gifId, String path) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        byte[] webpBytes = getWebpBytes(gifId).get();
+                        if (isNotWebp(webpBytes)) return false;
+                        return McAnim.INSTANCE.convert_webp(
+                                webpBytes,
+                                webpBytes.length,
+                                gifId + ".mcanim",
+                                path
+                        );
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, EXECUTOR
+        );
+    }
 
-                byte[] webpBytes = client.send(gifRequest, HttpResponse.BodyHandlers.ofByteArray()).body();
+    public CompletableFuture<Boolean> downloadFromUrl(String url, String name, String dir) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        byte[] webp = client.send(
+                                HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
+                                HttpResponse.BodyHandlers.ofByteArray()
+                        ).body();
+                        if (isNotWebp(webp)) return false;
+                        return McAnim.INSTANCE.convert_webp(webp, webp.length, name + ".mcanim", dir);
+                    } catch (IOException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, EXECUTOR
+        );
+    }
 
-                return McAnim.INSTANCE.convert_webp(
-                        webpBytes,
-                        webpBytes.length,
-                        gifId + ".mcanim",
-                        gifPath.toString()
-                );
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }, Executors.newVirtualThreadPerTaskExecutor());
+    private CompletableFuture<byte[]> getWebpBytes(String gifId) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(
+                                    BASE_URL + "items?slugs=" + URLEncoder.encode(gifId, UTF_8) + customerParam()))
+                            .GET()
+                            .build();
+
+                    try {
+                        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                        if (response.statusCode() != 200) {
+                            throw new IOException("items HTTP " + response.statusCode() + " for " + gifId);
+                        }
+
+                        GifsResponse list = gson.fromJson(response.body(), GifsResponse.class);
+                        if (list == null || list.getData() == null
+                            || list.getData().getData() == null || list.getData().getData().isEmpty()) {
+                            throw new IOException("Gif not found: " + gifId);
+                        }
+
+                        String url = list.getData().getData().getFirst().getFile().getXs().getAnimated().getUrl();
+                        HttpRequest gifRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(url))
+                                .GET()
+                                .build();
+
+                        return client.send(gifRequest, HttpResponse.BodyHandlers.ofByteArray()).body();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                }, EXECUTOR
+        );
     }
 
     public boolean existsGif(String gifName) {
         return Files.exists(gifPath.resolve(gifName));
     }
 
-    public GifsResponse search(String query) {
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            Future<GifsResponse> future = executor.submit(() -> {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(BASE_URL + "search?format_filter=webp&q=" + query))
-                        .GET()
-                        .build();
+    private GifsResponse fetchList(String endpoint, String query, int page) {
+        StringBuilder url = new StringBuilder(BASE_URL)
+                .append(endpoint)
+                .append("?format_filter=webp&page=").append(page)
+                .append("&per_page=").append(PER_PAGE)
+                .append(customerParam());
+        if (query != null) url.append("&q=").append(URLEncoder.encode(query, UTF_8));
 
-                try {
-                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    return gson.fromJson(response.body(), GifsResponse.class);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-
-            return future.get();
-        } catch (ExecutionException | InterruptedException e) {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url.toString())).GET().build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return gson.fromJson(response.body(), GifsResponse.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
 
+    public GifsResponse search(String query) {
+        return search(query, 1);
+    }
+
+    public GifsResponse search(String query, int page) {
+        return fetchList("search", query, page);
+    }
+
     public GifsResponse trending() {
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            Future<GifsResponse> future = executor.submit(() -> {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(BASE_URL + "trending?format_filter=webp"))
-                        .GET()
-                        .build();
+        return trending(1);
+    }
 
-                try {
-                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    return gson.fromJson(response.body(), GifsResponse.class);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-
-            return future.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    public GifsResponse trending(int page) {
+        return fetchList("trending", null, page);
     }
 }

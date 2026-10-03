@@ -6,9 +6,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import ru.fozeton.chatmanager.ChatManagerCore;
-import ru.fozeton.chatmanager.events.MessageReceivedEvent;
-import ru.fozeton.chatmanager.messages.Message;import ru.fozeton.chatmanager.utils.compat.handlers.AddedMessageHandler;
+import ru.fozeton.chatmanager.utils.compat.handlers.AddedMessageHandler;
 
 @Mixin(ChatComponent.class)
 public class AddedMessageMixin1_21_4 {

@@ -13,9 +13,11 @@ import ru.fozeton.chatmanager.utils.TickCounter;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public final class ChatManagerCore {
     public static final String MOD_ID = "chatmanager_core";
+    public static final Pattern GIF_PATTERN = Pattern.compile(":((?=[A-Za-z0-9_-]*-)[A-Za-z0-9_-]{2,120}|\\d{15,19}):");
     public static final IEventBus EVENT_BUS = new EventBus();
     @Getter
     private static final Map<String, ChatChannel> channels = new HashMap<>();

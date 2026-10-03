@@ -23,12 +23,10 @@ import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageType;
 import ru.fozeton.chatmanager.utils.compat.providers.PacketCompatProvider;
 
-import java.util.regex.Pattern;
+import static ru.fozeton.chatmanager.ChatManagerCore.GIF_PATTERN;
 
 @Mixin(ClientPacketListener.class)
 public abstract class ClientChatMixin extends ClientCommonPacketListenerImpl {
-    @Unique
-    private static final Pattern GIF_PATTERN = Pattern.compile(":\\d{15,19}:");
     @Unique
     private final AliasConfig chatmanager_core$aliasConfig = ChatConfigManager.getInstance().getAliasConfig();
 

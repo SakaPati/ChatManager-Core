@@ -16,5 +16,6 @@ public final class VersionInit {
         ClickEventProvider.setInstance(ClickEvent26_2.getInstance());
         PacketCompatProvider.setInstance(PacketCompat26_2.getInstance());
         ScreenProvider.setInstance(Screen26_2.getInstance());
+        GameProfileProvider.setInstance(GameProfile26_2.getInstance());
     }
 }
