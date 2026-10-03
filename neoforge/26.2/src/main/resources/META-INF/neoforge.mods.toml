@@ -16,23 +16,26 @@ logoFile = "assets/chatmanager_core/icon.png"
 [[dependencies.chatmanager_core]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21,)"
+versionRange = "[26.2,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.chatmanager_core]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.4]"
+versionRange = "[26.2]"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.chatmanager_core]]
-modId = "architectury"
+modId = "cloth_config"
 type = "required"
-versionRange = "[15.0.3,)"
+versionRange = "[26.2.155,)"
 ordering = "AFTER"
 side = "BOTH"
 
 [[mixins]]
 config = "chatmanager_core.mixins.json"
+
+[[mixins]]
+config = "chatmanager_core.26_2.mixins.json"

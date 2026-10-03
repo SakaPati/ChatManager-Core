@@ -28,11 +28,14 @@ ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.chatmanager_core]]
-modId = "architectury"
+modId = "cloth_config"
 type = "required"
-versionRange = "[15.0.3,)"
+versionRange = "[17.0.144,)"
 ordering = "AFTER"
 side = "BOTH"
 
 [[mixins]]
 config = "chatmanager_core.mixins.json"
+
+[[mixins]]
+config = "chatmanager_core.1_21_4.mixins.json"

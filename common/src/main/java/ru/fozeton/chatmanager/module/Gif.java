@@ -1,14 +1,13 @@
 package ru.fozeton.chatmanager.module;
 
 import com.google.gson.Gson;
-import com.mojang.authlib.GameProfile;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import net.minecraft.client.Minecraft;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.module.gif.GifsResponse;
-import ru.fozeton.chatmanager.module.gif.McAnim;import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
+import ru.fozeton.chatmanager.module.gif.McAnim;
+import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
 
 import java.io.IOException;
 import java.net.URI;
