@@ -22,7 +22,15 @@ subprojects {
     pluginManager.withPlugin('java') {
         base.archivesName = "${rootProject.archives_name}-${project.parent.name}-${project.name}"
 
-        java { withSourcesJar() }
+        pluginManager.apply('maven-publish')
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    artifactId = "${rootProject.archives_name}-${project.parent.name}-${project.name}"
+                    from components.java
+                }
+            }
+        }
 
         def commonDir  = "$rootDir/common"
         def versionDir = "$rootDir/common/versions/${project.name}"
