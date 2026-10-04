@@ -7,7 +7,9 @@ import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
 import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
-import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.network.WebHooksHandler;import ru.fozeton.chatmanager.utils.DependencyLoader;
+import ru.fozeton.chatmanager.network.NetworkManager;
+import ru.fozeton.chatmanager.network.WebHooksHandler;
+import ru.fozeton.chatmanager.utils.DependencyLoader;
 import ru.fozeton.chatmanager.utils.TickCounter;
 
 import java.nio.file.Path;

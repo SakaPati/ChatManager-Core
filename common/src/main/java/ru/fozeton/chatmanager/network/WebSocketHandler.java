@@ -6,8 +6,8 @@ import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import ru.fozeton.chatmanager.ChatManagerCore;
-import ru.fozeton.chatmanager.config.ChannelsConfig;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
+import ru.fozeton.chatmanager.config.NetworkConfig;
 import ru.fozeton.chatmanager.events.network.socket.SocketCloseEvent;
 import ru.fozeton.chatmanager.events.network.socket.SocketConnectionEvent;
 import ru.fozeton.chatmanager.events.network.socket.SocketErrorEvent;
@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WebSocketHandler {
     private final HttpClient client = NetworkManager.getInstance().getClient();
-    private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
+    private final NetworkConfig networkConfig = ChatConfigManager.getInstance().getNetworkConfig();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
             1,
             Thread.ofVirtual().factory()
@@ -40,7 +40,9 @@ public class WebSocketHandler {
     private int connectionCounter = 0;
 
     public void connection() {
-        String url = channelsConfig.getSocketUrl();
+        String url = networkConfig.getSocketUrl();
+        if (url.isBlank()) return;
+
         log.info(String.format("Initiating WebSocket connection to URL: %s (Attempt #%d)", url, connectionCounter + 1));
 
         client.newWebSocketBuilder()
@@ -110,7 +112,7 @@ public class WebSocketHandler {
         public void onOpen(WebSocket webSocket) {
             log.info(String.format(
                     "WebSocket connection successfully opened to URL: %s",
-                    channelsConfig.getSocketUrl()
+                    networkConfig.getSocketUrl()
             ));
             ChatManagerCore.EVENT_BUS.activate(new SocketConnectionEvent(webSocket));
             WebSocket.Listener.super.onOpen(webSocket);

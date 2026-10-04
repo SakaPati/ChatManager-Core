@@ -12,7 +12,6 @@ import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
 import ru.fozeton.chatmanager.network.NetworkManager;
 
-import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 

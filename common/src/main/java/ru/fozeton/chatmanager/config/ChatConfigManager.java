@@ -89,4 +89,8 @@ public class ChatConfigManager {
     public VoiceConfig getVoiceConfig() {
         return getOrLoad(VoiceConfig.class);
     }
+
+    public NetworkConfig getNetworkConfig() {
+        return getOrLoad(NetworkConfig.class);
+    }
 }

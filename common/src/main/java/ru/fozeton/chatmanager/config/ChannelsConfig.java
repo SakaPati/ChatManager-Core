@@ -1,11 +1,9 @@
 package ru.fozeton.chatmanager.config;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
-import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,13 +19,6 @@ public class ChannelsConfig implements IConfig {
     private int lineBackgroundAlpha = 200;
     private int stripBackgroundAlpha = 255;
     private int sendMessageDelaySeconds = 1;
-
-    @Setter(AccessLevel.NONE)
-    @Comment("Global webhook is used to send ALL messages via HTTP")
-    private WebHook globalWebHook = new WebHook();
-
-    @Setter(AccessLevel.NONE)
-    private String socketUrl = "";
 
     @ConfigEntry.Gui.Excluded
     private Map<String, ChannelSettings> channels = new LinkedHashMap<>();
@@ -76,11 +67,6 @@ public class ChannelsConfig implements IConfig {
         private int fadingDuration = 1000;
         @ConfigEntry.Gui.CollapsibleObject
         private EditMode editMode = new EditMode();
-        @ConfigEntry.Gui.CollapsibleObject
-        @Comment("Local webhook takes priority over the global one. Even if the global webhook is enabled, the local one will be used for sending.")
-        private WebHook webHook = new WebHook();
-        @Comment("If true, messages from this channel will NEVER be sent to any webhook (neither local nor global).")
-        private boolean isChannelIgnore = false;
     }
 
     @Getter
@@ -98,16 +84,5 @@ public class ChannelsConfig implements IConfig {
         private String backgroundColor = "0xFF000000";
         private String blinkColor = "0xE63A2E1A";
         private String scrollColor = "0xFF7c6ef5";
-    }
-
-    @Getter
-    @Setter
-    public static class WebHook {
-        private String url = "";
-        private boolean enable = false;
-
-        @Setter(AccessLevel.NONE)
-        @Comment("false (default) - sends a serialized Component (JSON with colors and formatting). true - sends plain text without formatting.")
-        private boolean cleanText = false;
     }
 }
