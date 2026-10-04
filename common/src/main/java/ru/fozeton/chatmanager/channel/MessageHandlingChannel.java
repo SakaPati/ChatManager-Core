@@ -10,6 +10,7 @@ import ru.fozeton.chatmanager.events.PlayerMentionedEvent;
 import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
+import ru.fozeton.chatmanager.network.NetworkManager;
 
 import java.net.http.HttpClient;
 import java.util.ArrayList;
@@ -61,5 +62,6 @@ public class MessageHandlingChannel {
     }
 
     protected void onNetworkDispatch(Message message) {
+        NetworkManager.getInstance().dispatcher(message);
     }
 }

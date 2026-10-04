@@ -7,7 +7,7 @@ import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
 import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
-import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.network.WebHooks;import ru.fozeton.chatmanager.utils.DependencyLoader;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.network.WebHooksHandler;import ru.fozeton.chatmanager.utils.DependencyLoader;
 import ru.fozeton.chatmanager.utils.TickCounter;
 
 import java.nio.file.Path;
@@ -32,7 +32,7 @@ public final class ChatManagerCore {
         DependencyLoader.loadDependencies(configDir.resolve("libs"));
         TickCounter.getInstance();
         registerChannel("Default", new ChatChannel("Default", "Основной"));
-        NetworkManager.getInstance().setWebHooks(new WebHooks());
+        NetworkManager.getInstance().setWebHooksHandler(new WebHooksHandler());
     }
 
     public static void registerChannel(String channelId, ChatChannel channel) {

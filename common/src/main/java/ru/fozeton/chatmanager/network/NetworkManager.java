@@ -18,9 +18,9 @@ public class NetworkManager {
 
     @Setter
     @Nullable
-    private WebHooks webHooks;
+    private WebHooksHandler webHooksHandler;
 
     public void dispatcher(Message message) {
-        if (webHooks != null) webHooks.onWebHook(message);
+        if (webHooksHandler != null) webHooksHandler.onWebHook(message);
     }
 }

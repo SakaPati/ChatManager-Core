@@ -26,6 +26,9 @@ public class ChannelsConfig implements IConfig {
     @Comment("Global webhook is used to send ALL messages via HTTP")
     private WebHook globalWebHook = new WebHook();
 
+    @Setter(AccessLevel.NONE)
+    private String socketUrl = "";
+
     @ConfigEntry.Gui.Excluded
     private Map<String, ChannelSettings> channels = new LinkedHashMap<>();
     @ConfigEntry.Gui.CollapsibleObject

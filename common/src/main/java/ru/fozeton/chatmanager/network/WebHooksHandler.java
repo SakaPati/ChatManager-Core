@@ -14,10 +14,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class WebHooks {
+public class WebHooksHandler {
     private final HttpClient client = NetworkManager.getInstance().getClient();
     private final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
-    private final Logger log = new Logger(WebHooks.class);
+    private final Logger log = new Logger(WebHooksHandler.class);
     private final Gson gson = new Gson();
 
     protected void onWebHook(Message message) {
