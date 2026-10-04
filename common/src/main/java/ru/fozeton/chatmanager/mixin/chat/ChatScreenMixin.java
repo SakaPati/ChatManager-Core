@@ -21,7 +21,7 @@ import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.InputEvent;
 import ru.fozeton.chatmanager.events.game.StylizeMessageEvent;
 import ru.fozeton.chatmanager.module.ChatQueueManager;
-import ru.fozeton.chatmanager.utils.Logger;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.utils.Logger;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -36,7 +36,7 @@ public class ChatScreenMixin {
     @Unique
     private final Gson chatmanager_core$gson = new Gson();
     @Unique
-    private final HttpClient chatmanager_core$client = HttpClient.newHttpClient();
+    private final HttpClient chatmanager_core$client = NetworkManager.getInstance().getClient();
     @Unique
     private final Logger chatmanager_core$log = new Logger(ChatScreenMixin.class);
     @Unique

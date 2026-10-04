@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.module.gif.GifsResponse;
 import ru.fozeton.chatmanager.module.gif.McAnim;
-import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,7 +33,7 @@ public class Gif {
     private static final String BASE_URL = "https://core.chatmanager.workers.dev/gifs/";
     private static final Executor EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private final Path gifPath = ChatManagerCore.getConfigDir().resolve("cache");
-    private final HttpClient client = HttpClient.newHttpClient();
+    private final HttpClient client = NetworkManager.getInstance().getClient();
     private final Gson gson = new Gson();
 
     private static boolean isNotWebp(byte[] bytes) {
@@ -55,6 +55,7 @@ public class Gif {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
+                        Files.createDirectories(Path.of(path));
                         byte[] webpBytes = getWebpBytes(gifId).get();
                         if (isNotWebp(webpBytes)) return false;
                         return McAnim.INSTANCE.convert_webp(
@@ -63,7 +64,7 @@ public class Gif {
                                 gifId + ".mcanim",
                                 path
                         );
-                    } catch (InterruptedException | ExecutionException e) {
+                    } catch (InterruptedException | ExecutionException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 }, EXECUTOR

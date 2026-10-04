@@ -7,7 +7,7 @@ import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
 import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
-import ru.fozeton.chatmanager.utils.DependencyLoader;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.network.WebHooks;import ru.fozeton.chatmanager.utils.DependencyLoader;
 import ru.fozeton.chatmanager.utils.TickCounter;
 
 import java.nio.file.Path;
@@ -17,8 +17,7 @@ import java.util.regex.Pattern;
 
 public final class ChatManagerCore {
     public static final String MOD_ID = "chatmanager_core";
-    public static final Pattern GIF_PATTERN = Pattern.compile(":((?=[A-Za-z0-9_-]*-)[A-Za-z0-9_-]{2,120}|\\d{15,19}):");
-    public static final IEventBus EVENT_BUS = new EventBus();
+    public static final Pattern GIF_PATTERN = Pattern.compile(":((?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{2,120}|\\d{15,19}):");    public static final IEventBus EVENT_BUS = new EventBus();
     @Getter
     private static final Map<String, ChatChannel> channels = new HashMap<>();
     @Getter
@@ -33,6 +32,7 @@ public final class ChatManagerCore {
         DependencyLoader.loadDependencies(configDir.resolve("libs"));
         TickCounter.getInstance();
         registerChannel("Default", new ChatChannel("Default", "Основной"));
+        NetworkManager.getInstance().setWebHooks(new WebHooks());
     }
 
     public static void registerChannel(String channelId, ChatChannel channel) {

@@ -1,6 +1,7 @@
 package ru.fozeton.chatmanager.channel;
 
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import ru.fozeton.chatmanager.ChatManagerCore;
@@ -8,6 +9,7 @@ import ru.fozeton.chatmanager.events.channel.ChannelAddedEvent;
 import ru.fozeton.chatmanager.events.channel.MessageAddedToChannelEvent;
 import ru.fozeton.chatmanager.events.channel.MessageStackEvent;
 import ru.fozeton.chatmanager.messages.Message;
+import ru.fozeton.chatmanager.messages.Metadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +45,7 @@ public class ChatChannel {
             for (Message msg : messages) {
                 if (msg.getTimestamp().toEpochMilli() < segment) break;
 
-                if (msg.getPlainText().equals(message.getPlainText())) {
+                if (msg.getFullPlain().equals(message.getFullPlain())) {
                     msg.setStack(msg.getStack() + 1);
                     ChatManagerCore.EVENT_BUS.activate(new MessageStackEvent(msg.getId(), msg, this));
 

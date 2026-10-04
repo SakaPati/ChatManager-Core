@@ -20,10 +20,9 @@ public interface ChatMessageParser {
                 : packet.chatType().decorate(Component.literal(packet.body().content()));
 
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 packet.chatType().name().getString(),
                 useTimeFormatter(content),
-                packet.body().content(),
                 MessageType.PLAYER,
                 packet.body().timeStamp()
         );
@@ -40,10 +39,9 @@ public interface ChatMessageParser {
         }
 
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 null,
                 useTimeFormatter(content),
-                content.getSiblings().isEmpty() ? content.getString() : content.getSiblings().getLast().getString(),
                 type,
                 Instant.now()
         );
@@ -51,10 +49,9 @@ public interface ChatMessageParser {
 
     default Message parseAddedMessageLocalChat(Component component) {
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 null,
                 component,
-                component.getString(),
                 MessageType.CLIENT,
                 Instant.now()
         );

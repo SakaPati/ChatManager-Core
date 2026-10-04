@@ -7,7 +7,7 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.config.VoiceConfig;
 import ru.fozeton.chatmanager.events.speech.*;
-import ru.fozeton.chatmanager.utils.Logger;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.utils.Logger;
 import ru.fozeton.chatmanager.utils.stt.VoiceIndicator;
 import ru.fozeton.chatmanager.utils.stt.VoskContext;
 import ru.fozeton.chatmanager.utils.stt.VoskModel;
@@ -60,7 +60,7 @@ import java.util.zip.ZipInputStream;
  */
 public class SpeechToText {
     private static final Logger log = new Logger(SpeechToText.class);
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = NetworkManager.getInstance().getClient();
 
     /**
      * Root directory where all language models are stored: {@code <config>/language_models}.

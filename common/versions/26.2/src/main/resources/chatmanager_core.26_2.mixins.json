@@ -6,7 +6,8 @@
   "client": [
     "AddedMessageMixin26_2",
     "KeyBoardMixin26_2",
-    "MouseMixin26_2"
+    "MouseMixin26_2",
+    "ScreenInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

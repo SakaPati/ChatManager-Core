@@ -1,6 +1,6 @@
 package ru.fozeton.chatmanager.utils;
 
-import ru.fozeton.chatmanager.utils.stt.VoskContext;
+import ru.fozeton.chatmanager.network.NetworkManager;import ru.fozeton.chatmanager.utils.stt.VoskContext;
 import ru.fozeton.chatmanager.utils.stt.VoskFactory;
 
 import java.io.InputStream;
@@ -23,7 +23,7 @@ import java.nio.file.StandardCopyOption;
  * wrapper JARs by default.
  */
 public class DependencyLoader {
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = NetworkManager.getInstance().getClient();
     private static final String VOSK_URL = "https://repo1.maven.org/maven2/com/alphacephei/vosk/0.3.45/vosk-0.3.45.jar";
 
     /**
