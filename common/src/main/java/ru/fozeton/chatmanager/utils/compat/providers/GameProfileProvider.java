@@ -16,7 +16,7 @@ public class GameProfileProvider {
         if (instance == null) {
             throw new IllegalStateException("""
                     IGameProfile has not been initialized!
-                    Please call ScreenProvider.setInstance(...) during client initialization.
+                    Please call GameProfileProvider.setInstance(...) during client initialization.
                     """.stripIndent());
         }
         return instance;
