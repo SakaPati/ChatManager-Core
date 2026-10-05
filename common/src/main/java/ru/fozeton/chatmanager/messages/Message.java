@@ -12,6 +12,7 @@ import ru.fozeton.chatmanager.channel.ChatChannel;
 import ru.fozeton.chatmanager.utils.compat.providers.ClickEventProvider;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Getter
@@ -46,8 +47,9 @@ public class Message {
         this.timestamp = timestamp;
     }
 
-    public ChatChannel getChannel() {
-        return metadata.getMetadata(ChannelMetadata.class).orElseThrow().getChannel();
+    public Optional<ChatChannel> getChannel() {
+        Optional<ChannelMetadata> channelMetadata = metadata.getMetadata(ChannelMetadata.class);
+        return channelMetadata.map(ChannelMetadata::getChannel);
     }
 
     public void setChannel(ChatChannel channel) {
@@ -68,6 +70,6 @@ public class Message {
     }
 
     public String getFullPlain() {
-        return fullComponent.toString();
+        return fullComponent.getString();
     }
 }

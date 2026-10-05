@@ -66,6 +66,12 @@ public class WebSocketHandler {
     }
 
     public void reconnect() {
+        if (connectionCounter == 5) {
+            log.error("Could not reconnect to the WebSocket server after 5 attempts. Giving up.");
+            connectionCounter = 0;
+            return;
+        }
+
         if (isReconnection.get()) return;
         isReconnection.set(true);
 
@@ -108,6 +114,8 @@ public class WebSocketHandler {
     }
 
     public class SocketListener implements WebSocket.Listener {
+        private final StringBuilder buffer = new StringBuilder();
+
         @Override
         public void onOpen(WebSocket webSocket) {
             log.info(String.format(
@@ -120,7 +128,16 @@ public class WebSocketHandler {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            String rawJson = data.toString();
+            buffer.append(data);
+            if(!last) return WebSocket.Listener.super.onText(webSocket, data, last);
+            if (buffer.length() > 1_000_000) {
+                buffer.setLength(0);
+                webSocket.sendClose(1009, "Message too big");
+                return null;
+            }
+
+            String rawJson = buffer.toString();
+            buffer.setLength(0);
 
             try {
                 SocketMessage msg = gson.fromJson(rawJson, SocketMessage.class);
@@ -140,7 +157,7 @@ public class WebSocketHandler {
                     case ADD -> gson.fromJson(pktData, ChatAddPacket.class);
                     case SEND -> gson.fromJson(pktData, ChatSendPacket.class);
                     case COMMAND -> gson.fromJson(pktData, ChatCommandPacket.class);
-                    case CUSTOM -> gson.fromJson(pktData, CustomPacket.class);
+                    default -> gson.fromJson(pktData, CustomPacket.class);
                 };
 
                 ChatManagerCore.EVENT_BUS.activate(new SocketPacketReceivedEvent(id, pkt, webSocket));

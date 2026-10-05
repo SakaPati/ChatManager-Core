@@ -9,6 +9,8 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import java.util.LinkedList;
 import java.util.List;
 
+import static ru.fozeton.chatmanager.config.IConfig.parseColor;
+
 @Getter
 @Setter
 @Config(name = "messagesFilter")
@@ -49,5 +51,13 @@ public class MessagesFilterConfig implements IConfig {
         private final String borderColor;
         private final String lineColor;
         private String replyMessage;
+
+        public int getBorderColor() {
+            return parseColor(borderColor, 0xFFFFFFFF);
+        }
+
+        public int getLineColor() {
+            return parseColor(lineColor, 0xFFFFFFFF);
+        }
     }
 }
