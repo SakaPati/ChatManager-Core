@@ -12,6 +12,6 @@ import ru.fozeton.chatmanager.channel.ChatChannel;
 @AllArgsConstructor
 public class MessageMetadata implements MetadataType {
     private final ChatChannel channel;
-    private final String lineColor;
-    private final String borderColor;
+    private final int lineColor;
+    private final int borderColor;
 }

@@ -22,6 +22,7 @@ public interface ChatMessageParser {
         return new Message(
                 UUID.randomUUID(),
                 packet.chatType().name().getString(),
+                content,
                 useTimeFormatter(content),
                 MessageType.PLAYER,
                 packet.body().timeStamp()
@@ -41,17 +42,19 @@ public interface ChatMessageParser {
         return new Message(
                 UUID.randomUUID(),
                 null,
+                content,
                 useTimeFormatter(content),
                 type,
                 Instant.now()
         );
     }
 
-    default Message parseAddedMessageLocalChat(Component component) {
+    default Message parseAddedMessageLocalChat(Component content) {
         return new Message(
                 UUID.randomUUID(),
                 null,
-                component,
+                content,
+                useTimeFormatter(content),
                 MessageType.CLIENT,
                 Instant.now()
         );

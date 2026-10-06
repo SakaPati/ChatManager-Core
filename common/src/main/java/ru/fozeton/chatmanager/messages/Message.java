@@ -44,13 +44,14 @@ public class Message {
             UUID id,
             @Nullable String author,
             Component fullComponent,
+            Component content,
             MessageType type,
             Instant timestamp
     ) {
         this.id = id;
         this.author = author;
         this.fullComponent = fullComponent;
-        this.content = this.fullComponent;
+        this.content = content;
         this.style = fullComponent.getStyle();
         this.type = type;
         this.timestamp = timestamp;

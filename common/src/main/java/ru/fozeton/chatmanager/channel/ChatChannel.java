@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Getter
 @Setter
@@ -64,6 +65,12 @@ public class ChatChannel {
 
     public void clear() {
         this.messages.clear();
+    }
+
+    public <R> R withMessages(Function<List<Message>, R> action) {
+        synchronized (messages) {
+            return action.apply(messages);
+        }
     }
 
     public void forEachMessage(Consumer<List<Message>> action) {
