@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Optional;
 
 public class WebHooksHandler {
     private final HttpClient client = NetworkManager.getInstance().getClient();
@@ -21,12 +22,13 @@ public class WebHooksHandler {
     private final Gson gson = new Gson();
 
     protected void onWebHook(Message message) {
-        ChatChannel messageChannel = message.getChannel();
+        Optional<ChatChannel> messageChannel = message.getChannel();
         NetworkConfig.WebHook localWebHook = null;
         NetworkConfig.WebHook globalWebHook = networkConfig.getGlobalWebHook();
-        if (messageChannel != null) {
-            if (networkConfig.getIgnoreChannels().contains(messageChannel.getId())) return;
-            localWebHook = networkConfig.getChannelsWebHooks().get(messageChannel.getId());
+        if (messageChannel.isPresent()) {
+            ChatChannel channel = messageChannel.get();
+            if (networkConfig.getIgnoreChannels().contains(channel.getId())) return;
+            localWebHook = networkConfig.getChannelsWebHooks().get(channel.getId());
         }
 
         String targetUrl = resolveWebhookUrl(localWebHook, globalWebHook);

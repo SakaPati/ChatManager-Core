@@ -8,7 +8,7 @@ import ru.fozeton.chatmanager.events.channel.ChannelAddedEvent;
 import ru.fozeton.chatmanager.events.channel.MessageAddedToChannelEvent;
 import ru.fozeton.chatmanager.events.channel.MessageStackEvent;
 import ru.fozeton.chatmanager.messages.Message;
-import ru.fozeton.chatmanager.messages.Metadata;
+import ru.fozeton.chatmanager.messages.metadata.Metadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,7 +28,7 @@ public class ChatChannel {
     private boolean visible = true;
     private int maxHistoryMessage = 100;
     private int maxVisibleMessage = 10;
-    private Metadata metadata;
+    private Metadata metadata = new Metadata();
 
     public ChatChannel(String id, String name) {
         this.id = id;

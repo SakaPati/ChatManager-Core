@@ -63,7 +63,7 @@ public interface ChatMessageParser {
 
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
         String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(new Date());
-        int color = Long.decode(channelsConfig.getTimeColor()).intValue();
+        int color = channelsConfig.getTimeColor();
 
         Component timePart = Component.literal(time + " ")
                 .withColor(color)
