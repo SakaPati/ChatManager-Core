@@ -20,4 +20,12 @@ public class ComponentSerializer1_21_4 implements IComponentSerializer {
         if (level == null) throw new NotInitializedException("ClientLevel not initialized");
         return Component.Serializer.toJson(component, level.registryAccess());
     }
+
+    @Override
+    public Component fromJson(String json) {
+        if (json == null || json.isBlank()) return null;
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) throw new NotInitializedException("ClientLevel not initialized");
+        return Component.Serializer.fromJson(json, level.registryAccess());
+    }
 }

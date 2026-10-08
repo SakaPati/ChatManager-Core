@@ -25,6 +25,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Manages the WebSocket connection to the backend configured in {@link ru.fozeton.chatmanager.config.NetworkConfig#getSocketUrl()}.
+ * <p>
+ * Handles connecting, automatic reconnection with exponential backoff (up to 5 attempts),
+ * and decoding of incoming text frames into {@link SocketPacket}s, which are then published
+ * on the event bus as {@link SocketPacketReceivedEvent}.
+ * <p>
+ * Callbacks of this class run on the HTTP client's worker threads, not on the Minecraft main thread.
+ */
 public class WebSocketHandler {
     private final HttpClient client = NetworkManager.getInstance().getClient();
     private final NetworkConfig networkConfig = ChatConfigManager.getInstance().getNetworkConfig();
@@ -39,6 +48,10 @@ public class WebSocketHandler {
     private WebSocket ws;
     private int connectionCounter = 0;
 
+    /**
+     * Opens a WebSocket connection to the configured URL.
+     * Does nothing if the URL is blank. On handshake failure, schedules a reconnect.
+     */
     public void connection() {
         String url = networkConfig.getSocketUrl();
         if (url.isBlank()) return;
@@ -65,6 +78,10 @@ public class WebSocketHandler {
                 });
     }
 
+    /**
+     * Schedules a reconnection attempt with exponential backoff ({@code 2^attempt} seconds).
+     * Gives up after 5 failed attempts. Does nothing if a reconnect is already scheduled.
+     */
     public void reconnect() {
         if (connectionCounter == 5) {
             log.error("Could not reconnect to the WebSocket server after 5 attempts. Giving up.");
@@ -98,6 +115,11 @@ public class WebSocketHandler {
     }
 
 
+    /**
+     * Wire format of a message received from the backend.
+     * <p>
+     * Example: {@code {"type": "COMMAND", "id": "<uuid>", "data": {"command": "time set day"}}}
+     */
     @Getter
     @RequiredArgsConstructor
     public static class SocketMessage {
@@ -105,17 +127,27 @@ public class WebSocketHandler {
         private final UUID id;
         private final JsonObject data;
 
+        /** Kind of packet, determines how {@code data} is decoded. */
         public enum Type {
+            /** Adds a local message to the chat (visible only to this player). */
             ADD,
+            /** Sends a chat message as the player. */
             SEND,
+            /** Executes a command as the player (must be in the allowed commands list). */
             COMMAND,
+            /** Application-specific packet with a custom payload. */
             CUSTOM
         }
     }
 
+    /**
+     * Listener for WebSocket events. Reassembles fragmented text frames, parses them into
+     * {@link SocketMessage}s and publishes the resulting packets on the event bus.
+     */
     public class SocketListener implements WebSocket.Listener {
         private final StringBuilder buffer = new StringBuilder();
 
+        /** Publishes a {@link SocketConnectionEvent} when the connection is opened. */
         @Override
         public void onOpen(WebSocket webSocket) {
             log.info(String.format(
@@ -126,6 +158,12 @@ public class WebSocketHandler {
             WebSocket.Listener.super.onOpen(webSocket);
         }
 
+        /**
+         * Accumulates fragments of a text frame and, once the frame is complete, decodes it into a
+         * {@link SocketPacket} and publishes a {@link SocketPacketReceivedEvent}.
+         * Frames larger than 1,000,000 characters are rejected and the connection is closed with code 1009.
+         * Malformed JSON is logged and ignored.
+         */
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
             buffer.append(data);
@@ -170,6 +208,7 @@ public class WebSocketHandler {
             return WebSocket.Listener.super.onText(webSocket, data, last);
         }
 
+        /** Publishes a {@link SocketCloseEvent} and schedules a reconnect. */
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
             String cleanReason = (reason == null || reason.isBlank()) ? "No reason provided" : reason;
@@ -183,6 +222,7 @@ public class WebSocketHandler {
             return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }
 
+        /** Publishes a {@link SocketErrorEvent} and schedules a reconnect. */
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
             log.error(String.format("WebSocket transport layer error occurred: %s", error.getMessage()), error);

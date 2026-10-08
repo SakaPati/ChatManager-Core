@@ -26,6 +26,9 @@ public class NetworkConfig implements IConfig {
     @Comment("WebSocket address of your backend, e.g. wss://example.com/chatmanager. Empty = disabled.")
     private String socketUrl = "";
 
+    @Comment("Commands the backend is allowed to execute on the client via the socket. Must match exactly. Empty = all commands are blocked.")
+    private List<String> allowedCommands = new ArrayList<>();
+
     @ConfigEntry.Gui.Excluded
     @Comment("Webhooks per channel. Key = channel id from channels.json5. If set and enabled, it is used instead of the global one.")
     private Map<String, WebHook> channelsWebHooks = new LinkedHashMap<>();
@@ -37,6 +40,7 @@ public class NetworkConfig implements IConfig {
     @Getter
     @Setter
     public static class WebHook {
+        @Setter(AccessLevel.NONE)
         @Comment("Webhook address (http:// or https://). Empty = does nothing.")
         private String url = "";
 

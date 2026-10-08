@@ -5,10 +5,12 @@ import com.ferra13671.megaevents.eventbus.impl.EventBus;
 import lombok.Getter;
 import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
-import ru.fozeton.chatmanager.exceptions.NotInitializedException;import ru.fozeton.chatmanager.messages.ChatMessageParser;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
+import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
-import ru.fozeton.chatmanager.network.NetworkManager;
+import ru.fozeton.chatmanager.module.ChatActions;import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.network.WebHooksHandler;
+import ru.fozeton.chatmanager.network.WebSocketHandler;
 import ru.fozeton.chatmanager.utils.DependencyLoader;
 import ru.fozeton.chatmanager.utils.TickCounter;
 
@@ -35,6 +37,8 @@ public final class ChatManagerCore {
         TickCounter.getInstance();
         registerChannel("Default", new ChatChannel("Default", "Основной"));
         NetworkManager.getInstance().setWebHooksHandler(new WebHooksHandler());
+        NetworkManager.getInstance().setWebSocketHandler(new WebSocketHandler()).connection();
+        ChatActions.getInstance();
     }
 
     public static void registerChannel(String channelId, ChatChannel channel) {

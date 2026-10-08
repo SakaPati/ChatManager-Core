@@ -6,7 +6,8 @@ import lombok.Setter;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
-import ru.fozeton.chatmanager.exceptions.NotInitializedException;import ru.fozeton.chatmanager.utils.compat.api.IClickEvent;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
+import ru.fozeton.chatmanager.utils.compat.api.IClickEvent;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClickEventProvider {

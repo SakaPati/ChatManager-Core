@@ -265,7 +265,7 @@ public class SpeechToText {
      * Captures audio from the default microphone (16 kHz, 16-bit, mono) and feeds it to a new
      * Vosk recognizer. While the user speaks, {@link VoskPartialResultEvent} is fired with the
      * intermediate text. Recognition finishes when Vosk reports a final result AND no voice
-     * (level &gt;= 0.15) has been detected for {@link VoiceConfig#getVoiceDelayMs()} milliseconds;
+     * (level &gt;= 0.15) has been detected for {@link ru.fozeton.chatmanager.config.VoiceConfig#getVoiceDelayMs()} milliseconds;
      * then {@link VoskResultEvent} is fired with the final text and the method returns.
      * <p>
      * If the microphone line is not supported, {@link VoskNotSupportMicroEvent} is fired and the
@@ -336,7 +336,7 @@ public class SpeechToText {
      * Models are stored as {@code language_models/<path>/<model>/} and downloaded from
      * {@code https://alphacephei.com/vosk/models/<model>.zip}. Several models can share the same
      * {@code path} (e.g. small and full versions of one language).
-     * The enum constant name (e.g. {@code RUSSIAN_SMALL}) is what {@link VoiceConfig#getModel()} stores.
+     * The enum constant name (e.g. {@code RUSSIAN_SMALL}) is what {@link ru.fozeton.chatmanager.config.VoiceConfig#getModel()} stores.
      */
     @Getter
     public enum Language {

@@ -12,7 +12,7 @@ public class ComponentSerializerProvider {
     @Setter
     private static IComponentSerializer instance;
 
-    public static String toJson(Component component) {
+    public static IComponentSerializer require() {
         if (instance == null) {
             throw new NotInitializedException(
                     """
@@ -20,6 +20,14 @@ public class ComponentSerializerProvider {
                             Please call ComponentSerializerProvider.setInstance(...) during client initialization.
                             """.stripIndent());
         }
-        return instance.toJson(component);
+        return instance;
+    }
+
+    public static String toJson(Component component) {
+        return require().toJson(component);
+    }
+
+    public static Component fromJson(String json) {
+        return require().fromJson(json);
     }
 }

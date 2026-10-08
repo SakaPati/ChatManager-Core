@@ -1,6 +1,7 @@
 package ru.fozeton.chatmanager.utils;
 
-import ru.fozeton.chatmanager.exceptions.DependencyLoadException;import ru.fozeton.chatmanager.network.NetworkManager;
+import ru.fozeton.chatmanager.exceptions.DependencyLoadException;
+import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.stt.VoskContext;
 import ru.fozeton.chatmanager.utils.stt.VoskFactory;
 

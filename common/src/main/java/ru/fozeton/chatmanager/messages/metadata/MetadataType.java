@@ -1,6 +1,8 @@
 package ru.fozeton.chatmanager.messages.metadata;
 
-import ru.fozeton.chatmanager.exceptions.MetadataException;import java.lang.reflect.Constructor;
+import ru.fozeton.chatmanager.exceptions.MetadataException;
+
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
