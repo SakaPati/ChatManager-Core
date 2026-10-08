@@ -39,6 +39,31 @@ subprojects {
             }
         }
 
+        tasks.withType(PublishToMavenRepository).configureEach {
+            doFirst {
+                def seen = new HashSet<String>()
+                def arts = publication.artifacts.toList().reverse()
+                arts.each { a ->
+                    if (!seen.add("${a.extension}:${a.classifier}")) {
+                        logger.lifecycle("Removing duplicate artifact ${a.file} (${a.extension}:${a.classifier})")
+                        publication.artifacts.remove(a)
+                    }
+                }
+            }
+        }
+
+        tasks.withType(PublishToMavenLocal).configureEach {
+            doFirst {
+                def seen = new HashSet<String>()
+                publication.artifacts.toList().reverse().each { a ->
+                    if (!seen.add("${a.extension}:${a.classifier}")) {
+                        logger.lifecycle("Removing duplicate artifact ${a.file}")
+                        publication.artifacts.remove(a)
+                    }
+                }
+            }
+        }
+
         def commonDir  = "$rootDir/common"
         def versionDir = "$rootDir/common/versions/${project.name}"
 
