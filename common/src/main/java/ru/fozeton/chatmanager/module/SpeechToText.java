@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -77,9 +78,11 @@ public class SpeechToText {
      * Language of {@link #cached}. Guarded by the class monitor.
      */
     private static Language cachedLanguage;
-
+    /**
+     * True while transcription() is running; the cached model must not be unloaded or deleted then.
+     */
+    private static AtomicBoolean busy = new AtomicBoolean();
     private final VoiceConfig config = ChatConfigManager.getInstance().getVoiceConfig();
-
     /**
      * Native Vosk model owned by this instance. Closed only through {@link #unload()}.
      */
@@ -158,9 +161,6 @@ public class SpeechToText {
         }
     }
 
-    /** True while transcription() is running; the cached model must not be unloaded or deleted then. */
-    private static volatile boolean busy;
-
     /**
      * Deletes the model folder from disk. If the model is currently loaded in memory, it is unloaded first.
      *
@@ -168,7 +168,7 @@ public class SpeechToText {
      * @return true if the model is gone, false if it is in use (recording) or deletion failed
      */
     public static synchronized boolean delete(Language language) {
-        if (busy && cachedLanguage == language) return false;
+        if (busy.get() && cachedLanguage == language) return false;
         if (cachedLanguage == language) unload();
 
         Path dir = models.resolve(language.getPath()).resolve(language.getModel());
@@ -213,6 +213,13 @@ public class SpeechToText {
                                 request,
                                 HttpResponse.BodyHandlers.ofInputStream()
                         );
+
+                        if (response.statusCode() >= 400 ||
+                            response.headers()
+                                    .firstValue("Content-Type")
+                                    .orElse("")
+                                    .contains("text/html")
+                        ) return;
 
                         Path path = models.resolve(languageModel.path);
                         if (!Files.exists(path)) Files.createDirectories(path);
@@ -281,7 +288,7 @@ public class SpeechToText {
             return;
         }
 
-        busy = true;
+        busy.set(true);
         try (
                 TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
                 InputStream ais = new AudioInputStream(line);
@@ -316,7 +323,7 @@ public class SpeechToText {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            busy = false;
+            busy.set(false);
             VoiceIndicator.finished();
         }
     }

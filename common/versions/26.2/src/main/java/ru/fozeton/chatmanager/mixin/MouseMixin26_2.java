@@ -14,7 +14,7 @@ public class MouseMixin26_2 {
     @Shadow private double ypos;
 
     @Inject(method = "onButton", at = @At("HEAD"))
-    private void diamondchat$onButton(long handle, MouseButtonInfo rawButtonInfo, int action, CallbackInfo ci) {
+    private void chatmanager_core$onButton(long handle, MouseButtonInfo rawButtonInfo, int action, CallbackInfo ci) {
         ru.fozeton.chatmanager.utils.compat.handlers.MouseHandler.handleClick(
                 handle,
                 rawButtonInfo.button(),

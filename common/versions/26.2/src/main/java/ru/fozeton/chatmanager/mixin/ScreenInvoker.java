@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface ScreenInvoker {
 
     @Invoker("defaultHandleGameClickEvent")
-    static void chatmanager$handleGameClickEvent(ClickEvent event, Minecraft minecraft, Screen screen) {
+    static void chatmanager_core$handleGameClickEvent(ClickEvent event, Minecraft minecraft, Screen screen) {
         throw new AssertionError();
     }
 }

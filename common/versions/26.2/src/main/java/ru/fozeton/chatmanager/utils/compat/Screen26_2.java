@@ -32,7 +32,7 @@ public class Screen26_2 implements IScreen {
         ClickEvent click = style.getClickEvent();
         if (click == null) return false;
 
-        ScreenInvoker.chatmanager$handleGameClickEvent(click, Minecraft.getInstance(), screen);
+        ScreenInvoker.chatmanager_core$handleGameClickEvent(click, Minecraft.getInstance(), screen);
         return true;
     }
 

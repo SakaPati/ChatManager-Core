@@ -12,10 +12,10 @@ import ru.fozeton.chatmanager.utils.compat.api.IComponentSerializer;
 public class ComponentSerializer1_21_4 implements IComponentSerializer {
     @Getter
     private static final ComponentSerializer1_21_4 instance = new ComponentSerializer1_21_4();
-    private final ClientLevel level = Minecraft.getInstance().level;
 
     @Override
     public String toJson(Component component) {
+        ClientLevel level = Minecraft.getInstance().level;
         if (level == null) throw new RuntimeException("ClientLevel not initialized");
         return Component.Serializer.toJson(component, level.registryAccess());
     }

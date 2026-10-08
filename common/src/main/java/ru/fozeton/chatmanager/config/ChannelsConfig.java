@@ -111,12 +111,12 @@ public class ChannelsConfig implements IConfig {
     @Setter
     public static class ChatHistory {
         private boolean useColorRemapper = true;
-        private String backgroundColor = "0xFF000000";
+        private String backgroundColor = "0x80000000";
         private String blinkColor = "0xE63A2E1A";
         private String scrollColor = "0xFF7c6ef5";
 
         public int getBackgroundColor() {
-            return parseColor(backgroundColor, 0xFF000000);
+            return parseColor(backgroundColor, 0x80000000);
         }
 
         public int getBlinkColor() {

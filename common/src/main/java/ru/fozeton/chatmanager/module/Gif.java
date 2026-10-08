@@ -16,8 +16,11 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -44,8 +47,22 @@ public class Gif {
     }
 
     private String customerParam() {
-        String id = String.format("%s_%s", GameProfileProvider.getName(), GameProfileProvider.getId());
-        return "&customer_id=" + URLEncoder.encode(id, UTF_8);
+        try {
+            String id = String.format("%s_%s", GameProfileProvider.getName(), GameProfileProvider.getId());
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(id.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return "&customer_id=" + URLEncoder.encode(hexString.toString(), UTF_8);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public CompletableFuture<Boolean> download(String gifId) {

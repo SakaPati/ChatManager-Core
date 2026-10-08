@@ -18,7 +18,7 @@ public class TickCounter {
 
     @EventSubscriber(event = ClientTickEvent.class)
     public void tickCounter() {
-        if (tick != 20) tick++;
+        if (tick != 19) tick++;
         else {
             tick = 0;
             ChatManagerCore.EVENT_BUS.activate(new SecondElapsedEvent());
