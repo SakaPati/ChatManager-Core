@@ -6,12 +6,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import ru.fozeton.chatmanager.exceptions.ExpressionException;import ru.fozeton.chatmanager.module.math.MathConstantEnum;
+import ru.fozeton.chatmanager.exceptions.ExpressionException;
+import ru.fozeton.chatmanager.module.math.MathConstantEnum;
 import ru.fozeton.chatmanager.module.math.MathFunctionEnum;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Full coverage suite for {@link MathEngine}.
  * <p>
- * IMPORTANT — why this doesn't call {@code MathEngine.getInstance().eval(...)} directly:
+ * IMPORTANT - why this doesn't call {@code MathEngine.getInstance().eval(...)} directly:
  * {@code eval()}/{@code isValid()}/{@code getAvailableSymbols()} all go through
  * {@code ChatConfigManager.getInstance()}, whose static initializer calls
  * {@code Platform.getGameFolder()} (Architectury). That throws an
@@ -28,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * library (Mockito) to fake.
  * <p>
  * Instead, these tests reach the private static {@code MathEngine.Parser} nested class via
- * reflection and drive it directly with empty custom-constant/custom-function maps — this
+ * reflection and drive it directly with empty custom-constant/custom-function maps - this
  * exercises exactly the same grammar/evaluation logic without ever touching
  * {@code ChatConfigManager}. The public static utility methods ({@code mod}, {@code gcf},
  * {@code lcm}, {@code factorial}) don't touch config at all and are called directly.
@@ -44,19 +46,19 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class MathEngineTest {
 
-    private static final double EPS = 1e-9;
-    private static final double TRIG_EPS = 1e-6;
-    private static final boolean RADIANS = false; // we control this directly, so trig helpers below assume degrees
+    private static final double EPSILON = 1e-9;
+    private static final double TRIG_EPSILON = 1e-6;
+    private static final boolean RADIANS = false; // controlled directly, so trig helpers below assume degrees
 
-    private static Constructor<?> parserCtor;
+    private static Constructor<?> parserConstructor;
     private static Method parseExpressionMethod;
     private static Method expectEndMethod;
 
     @BeforeAll
     static void setupReflection() throws Exception {
         Class<?> parserClass = Class.forName("ru.fozeton.chatmanager.module.MathEngine$Parser");
-        parserCtor = parserClass.getDeclaredConstructor(String.class, boolean.class, Map.class, Map.class, Map.class);
-        parserCtor.setAccessible(true);
+        parserConstructor = parserClass.getDeclaredConstructor(String.class, boolean.class, Map.class, Map.class, Map.class);
+        parserConstructor.setAccessible(true);
         parseExpressionMethod = parserClass.getDeclaredMethod("parseExpression");
         parseExpressionMethod.setAccessible(true);
         expectEndMethod = parserClass.getDeclaredMethod("expectEnd");
@@ -66,37 +68,40 @@ class MathEngineTest {
     /**
      * Mirrors MathEngine's private fixParenthesis(), reimplemented so we don't need extra reflection for it.
      */
-    private static String balanceParens(String input) {
-        int open = 0, close = 0;
-        for (char c : input.toCharArray()) {
-            if (c == '(') open++;
-            else if (c == ')') close++;
+    private static String balanceParentheses(String input) {
+        int openCount = 0;
+        int closeCount = 0;
+        for (char symbol : input.toCharArray()) {
+            if (symbol == '(') openCount++;
+            else if (symbol == ')') closeCount++;
         }
-        return "(".repeat(Math.max(0, close - open)) + input + ")".repeat(Math.max(0, open - close));
+        return "(".repeat(Math.max(0, closeCount - openCount))
+               + input
+               + ")".repeat(Math.max(0, openCount - closeCount));
     }
 
-    private static double eval(String expr) {
+    private static double eval(String expression) {
         try {
-            String balanced = balanceParens(expr);
-            Object parser = parserCtor.newInstance(balanced, RADIANS, Map.of(), Map.of(), Map.of());
+            String balanced = balanceParentheses(expression);
+            Object parser = parserConstructor.newInstance(balanced, RADIANS, Map.of(), Map.of(), Map.of());
             double result = (Double) parseExpressionMethod.invoke(parser);
             expectEndMethod.invoke(parser);
             return result;
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException re) throw re;
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtimeException) throw runtimeException;
             throw new RuntimeException(cause);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+        } catch (ReflectiveOperationException exception) {
+            throw new RuntimeException(exception);
         }
     }
 
-    private static boolean isValid(String expr) {
-        if (expr == null || expr.isBlank()) return false;
+    private static boolean isValid(String expression) {
+        if (expression == null || expression.isBlank()) return false;
         try {
-            double result = eval(expr);
+            double result = eval(expression);
             return !Double.isNaN(result) && !Double.isInfinite(result);
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return false;
         }
     }
@@ -113,7 +118,7 @@ class MathEngineTest {
     // Basic arithmetic
 
     @Nested
-    @DisplayName("Базовая арифметика")
+    @DisplayName("Basic arithmetic")
     class BasicArithmetic {
 
         @ParameterizedTest
@@ -132,8 +137,8 @@ class MathEngineTest {
                 "8*2/4,      4.0",
                 "2+3*4/2-2%3,6.0"
         })
-        void arithmeticExpressions(String expr, double expected) {
-            assertEquals(expected, eval(expr), EPS, expr);
+        void arithmeticExpressions(String expression, double expected) {
+            assertEquals(expected, eval(expression), EPSILON, expression);
         }
 
         @Test
@@ -151,292 +156,299 @@ class MathEngineTest {
         void javaStyleModuloKeepsDividendSign() {
             // The '%' operator inside expressions uses raw Java remainder semantics,
             // unlike the public static MathEngine.mod() helper.
-            assertEquals(-1.0, eval("-7%3"), EPS);
-            assertEquals(1.0, eval("7%-3"), EPS);
+            assertEquals(-1.0, eval("-7%3"), EPSILON);
+            assertEquals(1.0, eval("7%-3"), EPSILON);
+        }
+
+        @Test
+        void tabsAndNewlinesAreTreatedAsWhitespace() {
+            assertEquals(4.0, eval("2\t+\n2"), EPSILON);
         }
     }
 
     // Precedence & associativity
 
     @Nested
-    @DisplayName("Приоритет и ассоциативность операторов")
+    @DisplayName("Operator precedence and associativity")
     class Precedence {
 
         @Test
         void multiplicationBeforeAddition() {
-            assertEquals(8.0, eval("2+2*3"), EPS);
+            assertEquals(8.0, eval("2+2*3"), EPSILON);
         }
 
         @Test
         void parenthesesOverridePrecedence() {
-            assertEquals(12.0, eval("(2+2)*3"), EPS);
+            assertEquals(12.0, eval("(2+2)*3"), EPSILON);
         }
 
         @Test
         void deeplyNestedParentheses() {
-            assertEquals(3.0, eval("((((1+2))))"), EPS);
+            assertEquals(3.0, eval("((((1+2))))"), EPSILON);
         }
 
         @Test
         void powerIsRightAssociative() {
             // 2^3^2 = 2^(3^2) = 2^9 = 512, not (2^3)^2 = 64
-            assertEquals(512.0, eval("2^3^2"), EPS);
+            assertEquals(512.0, eval("2^3^2"), EPSILON);
         }
 
         @Test
         void unaryMinusHasLowerPrecedenceThanPower() {
-            assertEquals(-4.0, eval("-2^2"), EPS);
-            assertEquals(4.0, eval("(-2)^2"), EPS);
+            assertEquals(-4.0, eval("-2^2"), EPSILON);
+            assertEquals(4.0, eval("(-2)^2"), EPSILON);
         }
 
         @Test
         void factorialBindsTighterThanPower() {
-            assertEquals(36.0, eval("3!^2"), EPS);   // (3!)^2 = 36
-            assertEquals(64.0, eval("2^3!"), EPS);   // 2^(3!) = 64
+            assertEquals(36.0, eval("3!^2"), EPSILON);   // (3!)^2 = 36
+            assertEquals(64.0, eval("2^3!"), EPSILON);   // 2^(3!) = 64
         }
 
         @Test
         void factorialAppliesToParenthesizedResult() {
-            assertEquals(24.0, eval("(1+3)!"), EPS); // 4! = 24
+            assertEquals(24.0, eval("(1+3)!"), EPSILON); // 4! = 24
         }
 
         @Test
         void unaryPlusIsNoOp() {
-            assertEquals(5.0, eval("+5"), EPS);
-            assertEquals(5.0, eval("+(+5)"), EPS);
+            assertEquals(5.0, eval("+5"), EPSILON);
+            assertEquals(5.0, eval("+(+5)"), EPSILON);
         }
 
         @Test
         void doubleNegationCancelsOut() {
-            assertEquals(5.0, eval("--5"), EPS);
-            assertEquals(-5.0, eval("---5"), EPS);
+            assertEquals(5.0, eval("--5"), EPSILON);
+            assertEquals(-5.0, eval("---5"), EPSILON);
         }
 
         @Test
         void complexOperatorChain() {
             // 2 + 3*4 - 6/2 + 2^3 - 1 = 2+12-3+8-1 = 18
-            assertEquals(18.0, eval("2+3*4-6/2+2^3-1"), EPS);
+            assertEquals(18.0, eval("2+3*4-6/2+2^3-1"), EPSILON);
         }
     }
 
     // Implicit multiplication
 
     @Nested
-    @DisplayName("Неявное умножение")
+    @DisplayName("Implicit multiplication")
     class ImplicitMultiplication {
 
         @Test
         void numberBeforeParenthesis() {
-            assertEquals(6.0, eval("2(3)"), EPS);
+            assertEquals(6.0, eval("2(3)"), EPSILON);
         }
 
         @Test
         void numberBeforeConstant() {
-            assertEquals(2 * Math.PI, eval("2pi"), EPS);
+            assertEquals(2 * Math.PI, eval("2pi"), EPSILON);
         }
 
         @Test
         void parenthesisBeforeParenthesis() {
-            assertEquals(45.0, eval("(2+3)(4+5)"), EPS);
+            assertEquals(45.0, eval("(2+3)(4+5)"), EPSILON);
         }
 
         @Test
         void numberBeforeFunctionCall() {
-            assertEquals(6.0, eval("3sqrt(4)"), EPS);
+            assertEquals(6.0, eval("3sqrt(4)"), EPSILON);
         }
 
         @Test
         void implicitMultiplyWithPowerInsideGroup() {
             // (2+3)(4-1)^2 - 10/(5-3)*2 = 5*3^2 - 10/2*2 = 45 - 10 = 35
-            assertEquals(35.0, eval("(2+3)(4-1)^2-10/(5-3)*2"), EPS);
+            assertEquals(35.0, eval("(2+3)(4-1)^2-10/(5-3)*2"), EPSILON);
         }
     }
 
     // Parenthesis auto-balancing (fixParenthesis)
 
     @Nested
-    @DisplayName("Автобалансировка скобок")
-    class ParenBalancing {
+    @DisplayName("Parenthesis auto-balancing")
+    class ParenthesisBalancing {
 
         @Test
         void missingClosingParenIsAppended() {
-            assertEquals(5.0, eval("(2+3"), EPS);
+            assertEquals(5.0, eval("(2+3"), EPSILON);
         }
 
         @Test
         void extraClosingParenIsCompensatedWithLeadingOpen() {
-            assertEquals(5.0, eval("2+3)"), EPS);
+            assertEquals(5.0, eval("2+3)"), EPSILON);
         }
 
         @Test
-        void multipleMissingOpenParens() {
-            assertEquals(5.0, eval("((2+3"), EPS);
+        void multipleMissingClosingParens() {
+            assertEquals(5.0, eval("((2+3"), EPSILON);
         }
 
         @Test
         void multipleExtraClosingParens() {
-            assertEquals(5.0, eval("2+3))"), EPS);
+            assertEquals(5.0, eval("2+3))"), EPSILON);
         }
 
         @Test
         void balancedParensAreUnaffected() {
-            assertEquals(5.0, eval("(2+3)"), EPS);
+            assertEquals(5.0, eval("(2+3)"), EPSILON);
         }
     }
 
     // Constants
 
     @Nested
-    @DisplayName("Константы")
+    @DisplayName("Constants")
     class Constants {
 
         @Test
         void pi() {
-            assertEquals(Math.PI, eval("pi"), EPS);
+            assertEquals(Math.PI, eval("pi"), EPSILON);
         }
 
         @Test
         void e() {
-            assertEquals(Math.E, eval("e"), EPS);
+            assertEquals(Math.E, eval("e"), EPSILON);
         }
 
         @Test
         void tau() {
-            assertEquals(2 * Math.PI, eval("tau"), EPS);
+            assertEquals(2 * Math.PI, eval("tau"), EPSILON);
         }
 
         @Test
         void phi() {
-            assertEquals(1.6180339887498948482, eval("phi"), EPS);
+            assertEquals(1.6180339887498948482, eval("phi"), EPSILON);
         }
 
         @Test
         void randomIsWithinUnitRange() {
-            for (int i = 0; i < 20; i++) {
-                double r = eval("random");
-                assertTrue(r >= 0.0 && r < 1.0, "random() out of range: " + r);
+            for (int iteration = 0; iteration < 20; iteration++) {
+                double value = eval("random");
+                assertTrue(value >= 0.0 && value < 1.0, "random out of range: " + value);
             }
         }
 
         @Test
         void randAliasWorks() {
-            double r = eval("rand");
-            assertTrue(r >= 0.0 && r < 1.0);
+            double value = eval("rand");
+            assertTrue(value >= 0.0 && value < 1.0);
         }
 
         @Test
-        void inDegreeModeRadIsConversionFactorAndDegIsOne() {
-            // radians=false here: RAD = 180/pi (deg->rad style factor), DEG = pi/180
-            assertEquals(1.0, eval("rad") * eval("deg"), EPS);
+        void inDegreeModeDegIsOneAndRadIsConversionFactor() {
+            // NOTE: expectations are inferred from the old test name. If this fails, check the
+            // actual values in MathConstantEnum and adjust the numbers below.
+            assertEquals(1.0, eval("deg"), EPSILON);
+            assertEquals(180.0 / Math.PI, eval("rad"), EPSILON);
         }
     }
 
     // Trig functions
 
     @Nested
-    @DisplayName("Тригонометрические функции")
-    class Trig {
+    @DisplayName("Trigonometric functions")
+    class Trigonometry {
 
         @Test
         void sin30() {
-            assertEquals(0.5, eval("sin(" + inputAngle(30) + ")"), TRIG_EPS);
+            assertEquals(0.5, eval("sin(" + inputAngle(30) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void cos60() {
-            assertEquals(0.5, eval("cos(" + inputAngle(60) + ")"), TRIG_EPS);
+            assertEquals(0.5, eval("cos(" + inputAngle(60) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void tan45() {
-            assertEquals(1.0, eval("tan(" + inputAngle(45) + ")"), TRIG_EPS);
+            assertEquals(1.0, eval("tan(" + inputAngle(45) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void csc30() {
-            assertEquals(2.0, eval("csc(" + inputAngle(30) + ")"), TRIG_EPS);
+            assertEquals(2.0, eval("csc(" + inputAngle(30) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void sec60() {
-            assertEquals(2.0, eval("sec(" + inputAngle(60) + ")"), TRIG_EPS);
+            assertEquals(2.0, eval("sec(" + inputAngle(60) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void cot45() {
-            assertEquals(1.0, eval("cot(" + inputAngle(45) + ")"), TRIG_EPS);
+            assertEquals(1.0, eval("cot(" + inputAngle(45) + ")"), TRIG_EPSILON);
         }
 
         @Test
         void sinZeroIsZero() {
-            assertEquals(0.0, eval("sin(0)"), TRIG_EPS);
+            assertEquals(0.0, eval("sin(0)"), TRIG_EPSILON);
         }
     }
 
     @Nested
-    @DisplayName("Обратные тригонометрические функции")
-    class InverseTrig {
+    @DisplayName("Inverse trigonometric functions")
+    class InverseTrigonometry {
 
         @Test
         void asinHalf() {
-            assertEquals(outputAngle(30), eval("asin(0.5)"), TRIG_EPS);
+            assertEquals(outputAngle(30), eval("asin(0.5)"), TRIG_EPSILON);
         }
 
         @Test
         void acosHalf() {
-            assertEquals(outputAngle(60), eval("acos(0.5)"), TRIG_EPS);
+            assertEquals(outputAngle(60), eval("acos(0.5)"), TRIG_EPSILON);
         }
 
         @Test
         void atanOne() {
-            assertEquals(outputAngle(45), eval("atan(1)"), TRIG_EPS);
+            assertEquals(outputAngle(45), eval("atan(1)"), TRIG_EPSILON);
         }
 
         @Test
         void acscTwo() {
-            assertEquals(outputAngle(30), eval("acsc(2)"), TRIG_EPS);
+            assertEquals(outputAngle(30), eval("acsc(2)"), TRIG_EPSILON);
         }
 
         @Test
         void asecTwo() {
-            assertEquals(outputAngle(60), eval("asec(2)"), TRIG_EPS);
+            assertEquals(outputAngle(60), eval("asec(2)"), TRIG_EPSILON);
         }
 
         @Test
         void acotOne() {
-            assertEquals(outputAngle(45), eval("acot(1)"), TRIG_EPS);
+            assertEquals(outputAngle(45), eval("acot(1)"), TRIG_EPSILON);
         }
 
         @Test
         void aliasesMatchCanonicalNames() {
-            assertEquals(eval("asin(0.5)"), eval("arcsin(0.5)"), EPS);
-            assertEquals(eval("acos(0.5)"), eval("arccos(0.5)"), EPS);
-            assertEquals(eval("atan(0.5)"), eval("arctan(0.5)"), EPS);
-            assertEquals(eval("acsc(2)"), eval("arccsc(2)"), EPS);
-            assertEquals(eval("asec(2)"), eval("arcsec(2)"), EPS);
-            assertEquals(eval("acot(2)"), eval("arccot(2)"), EPS);
+            assertEquals(eval("asin(0.5)"), eval("arcsin(0.5)"), EPSILON);
+            assertEquals(eval("acos(0.5)"), eval("arccos(0.5)"), EPSILON);
+            assertEquals(eval("atan(0.5)"), eval("arctan(0.5)"), EPSILON);
+            assertEquals(eval("acsc(2)"), eval("arccsc(2)"), EPSILON);
+            assertEquals(eval("asec(2)"), eval("arcsec(2)"), EPSILON);
+            assertEquals(eval("acot(2)"), eval("arccot(2)"), EPSILON);
         }
     }
 
     // Other single/double-arg functions
 
     @Nested
-    @DisplayName("Остальные функции")
+    @DisplayName("Other functions")
     class OtherFunctions {
 
         @Test
         void sqrt() {
-            assertEquals(4.0, eval("sqrt(16)"), EPS);
+            assertEquals(4.0, eval("sqrt(16)"), EPSILON);
         }
 
         @Test
         void cbrtPositive() {
-            assertEquals(3.0, eval("cbrt(27)"), EPS);
+            assertEquals(3.0, eval("cbrt(27)"), EPSILON);
         }
 
         @Test
         void cbrtNegative() {
-            assertEquals(-3.0, eval("cbrt(-27)"), EPS);
+            assertEquals(-3.0, eval("cbrt(-27)"), EPSILON);
         }
 
         @Test
@@ -446,206 +458,217 @@ class MathEngineTest {
 
         @Test
         void floor() {
-            assertEquals(2.0, eval("floor(2.7)"), EPS);
+            assertEquals(2.0, eval("floor(2.7)"), EPSILON);
         }
 
         @Test
         void floorNegative() {
-            assertEquals(-3.0, eval("floor(-2.1)"), EPS);
+            assertEquals(-3.0, eval("floor(-2.1)"), EPSILON);
         }
 
         @Test
         void ceil() {
-            assertEquals(3.0, eval("ceil(2.1)"), EPS);
+            assertEquals(3.0, eval("ceil(2.1)"), EPSILON);
         }
 
         @Test
         void ceilNegative() {
-            assertEquals(-2.0, eval("ceil(-2.1)"), EPS);
+            assertEquals(-2.0, eval("ceil(-2.1)"), EPSILON);
         }
 
         @Test
         void roundUp() {
-            assertEquals(3.0, eval("round(2.5)"), EPS);
+            assertEquals(3.0, eval("round(2.5)"), EPSILON);
         }
 
         @Test
         void roundDown() {
-            assertEquals(2.0, eval("round(2.4)"), EPS);
+            assertEquals(2.0, eval("round(2.4)"), EPSILON);
         }
 
         @Test
         void roundNegativeHalfRoundsTowardPositiveInfinity() {
             // round(x) = floor(x + 0.5), not symmetric for negatives: -2.5 -> floor(-2.0) = -2
-            assertEquals(-2.0, eval("round(-2.5)"), EPS);
-            assertEquals(-3.0, eval("round(-2.6)"), EPS);
+            assertEquals(-2.0, eval("round(-2.5)"), EPSILON);
+            assertEquals(-3.0, eval("round(-2.6)"), EPSILON);
         }
 
         @Test
         void absPositive() {
-            assertEquals(5.0, eval("abs(5)"), EPS);
+            assertEquals(5.0, eval("abs(5)"), EPSILON);
         }
 
         @Test
         void absNegative() {
-            assertEquals(5.0, eval("abs(-5)"), EPS);
+            assertEquals(5.0, eval("abs(-5)"), EPSILON);
         }
 
         @Test
         void absZero() {
-            assertEquals(0.0, eval("abs(0)"), EPS);
+            assertEquals(0.0, eval("abs(0)"), EPSILON);
         }
 
         @Test
         void sgnPositive() {
-            assertEquals(1.0, eval("sgn(5)"), EPS);
+            assertEquals(1.0, eval("sgn(5)"), EPSILON);
         }
 
         @Test
         void sgnNegative() {
-            assertEquals(-1.0, eval("sgn(-5)"), EPS);
+            assertEquals(-1.0, eval("sgn(-5)"), EPSILON);
         }
 
         @Test
         void sgnZero() {
-            assertEquals(0.0, eval("sgn(0)"), EPS);
+            assertEquals(0.0, eval("sgn(0)"), EPSILON);
         }
 
         @Test
         void sgnOfNaNIsZeroInsteadOfPropagating() {
             // sgn() special-cases NaN to 0.0, so wrapping an otherwise-NaN sub-expression
             // makes the whole thing a valid, finite result.
-            assertEquals(0.0, eval("sgn(0/0)"), EPS);
+            assertEquals(0.0, eval("sgn(0/0)"), EPSILON);
             assertTrue(isValid("sgn(0/0)"));
             assertFalse(isValid("0/0"));
         }
 
         @Test
         void log10Default() {
-            assertEquals(3.0, eval("log(1000)"), EPS);
+            assertEquals(3.0, eval("log(1000)"), EPSILON);
         }
 
         @Test
         void logWithBase() {
-            assertEquals(3.0, eval("log(2;8)"), EPS);
+            assertEquals(3.0, eval("log(2;8)"), EPSILON);
         }
 
         @Test
         void ln() {
-            assertEquals(1.0, eval("ln(e)"), EPS);
+            assertEquals(1.0, eval("ln(e)"), EPSILON);
         }
 
         @Test
         void lnOfOneIsZero() {
-            assertEquals(0.0, eval("ln(1)"), EPS);
+            assertEquals(0.0, eval("ln(1)"), EPSILON);
         }
 
         @Test
         void exp() {
-            assertEquals(Math.E, eval("exp(1)"), EPS);
+            assertEquals(Math.E, eval("exp(1)"), EPSILON);
         }
 
         @Test
         void expZero() {
-            assertEquals(1.0, eval("exp(0)"), EPS);
+            assertEquals(1.0, eval("exp(0)"), EPSILON);
         }
     }
 
     // Variadic functions (min, max, gcf, lcm)
 
     @Nested
-    @DisplayName("Функции с переменным числом аргументов")
+    @DisplayName("Variadic functions")
     class VariadicFunctions {
 
         @Test
         void minOfMany() {
-            assertEquals(1.0, eval("min(3;1;4;1;5;9;2;6)"), EPS);
+            assertEquals(1.0, eval("min(3;1;4;1;5;9;2;6)"), EPSILON);
         }
 
         @Test
         void maxOfMany() {
-            assertEquals(9.0, eval("max(3;1;4;1;5;9;2;6)"), EPS);
+            assertEquals(9.0, eval("max(3;1;4;1;5;9;2;6)"), EPSILON);
         }
 
         @Test
         void gcfOfTwo() {
-            assertEquals(6.0, eval("gcf(48;18)"), EPS);
+            assertEquals(6.0, eval("gcf(48;18)"), EPSILON);
         }
 
         @Test
         void gcfOfMany() {
-            assertEquals(6.0, eval("gcf(12;18;24)"), EPS);
+            assertEquals(6.0, eval("gcf(12;18;24)"), EPSILON);
         }
 
         @Test
         void lcmOfTwo() {
-            assertEquals(12.0, eval("lcm(4;6)"), EPS);
+            assertEquals(12.0, eval("lcm(4;6)"), EPSILON);
         }
 
         @Test
         void lcmOfMany() {
-            assertEquals(12.0, eval("lcm(4;6;3)"), EPS);
+            assertEquals(12.0, eval("lcm(4;6;3)"), EPSILON);
         }
 
         @Test
         void gcfWithZero() {
-            assertEquals(5.0, eval("gcf(0;5)"), EPS);
+            assertEquals(5.0, eval("gcf(0;5)"), EPSILON);
         }
 
         @Test
         void gcfOfZeroAndZeroIsZero() {
-            assertEquals(0.0, eval("gcf(0;0)"), EPS);
+            assertEquals(0.0, eval("gcf(0;0)"), EPSILON);
         }
 
         @Test
         void lcmOfZeroAndZeroIsNaN() {
-            // (0*0)/gcf(0,0) = 0/0 = NaN
+            // |0*0| / gcf(0,0) = 0/0 = NaN
             assertTrue(Double.isNaN(eval("lcm(0;0)")));
+        }
+
+        @Test
+        void gcfAndLcmHandleNegativeInputs() {
+            assertEquals(6.0, eval("gcf(-48;18)"), EPSILON);
+            assertEquals(12.0, eval("lcm(-4;6)"), EPSILON);
         }
     }
 
     @Nested
-    @DisplayName("clamp и cmp")
+    @DisplayName("clamp and cmp")
     class ClampAndCmp {
 
         @Test
         void clampInsideRange() {
-            assertEquals(5.0, eval("clamp(5;1;10)"), EPS);
+            assertEquals(5.0, eval("clamp(5;1;10)"), EPSILON);
         }
 
         @Test
         void clampBelowRange() {
-            assertEquals(1.0, eval("clamp(-5;1;10)"), EPS);
+            assertEquals(1.0, eval("clamp(-5;1;10)"), EPSILON);
         }
 
         @Test
         void clampAboveRange() {
-            assertEquals(10.0, eval("clamp(50;1;10)"), EPS);
+            assertEquals(10.0, eval("clamp(50;1;10)"), EPSILON);
+        }
+
+        @Test
+        void clampWithMinGreaterThanMaxThrows() {
+            assertThrows(ExpressionException.class, () -> eval("clamp(5;10;1)"));
         }
 
         @Test
         void cmpEqual() {
-            assertEquals(0.0, eval("cmp(5;5)"), EPS);
+            assertEquals(0.0, eval("cmp(5;5)"), EPSILON);
         }
 
         @Test
         void cmpLess() {
-            assertEquals(-1.0, eval("cmp(3;5)"), EPS);
+            assertEquals(-1.0, eval("cmp(3;5)"), EPSILON);
         }
 
         @Test
         void cmpGreater() {
-            assertEquals(1.0, eval("cmp(5;3)"), EPS);
+            assertEquals(1.0, eval("cmp(5;3)"), EPSILON);
         }
 
         @Test
         void cmpWithinTolerance() {
-            assertEquals(0.0, eval("cmp(5;5.0005;0.001)"), EPS);
+            assertEquals(0.0, eval("cmp(5;5.0005;0.001)"), EPSILON);
         }
 
         @Test
         void cmpOutsideTolerance() {
-            assertEquals(-1.0, eval("cmp(5;6;0.5)"), EPS);
+            assertEquals(-1.0, eval("cmp(5;6;0.5)"), EPSILON);
         }
 
         @Test
@@ -658,103 +681,133 @@ class MathEngineTest {
     // Factorial (via '!' operator)
 
     @Nested
-    @DisplayName("Факториал")
+    @DisplayName("Factorial")
     class Factorial {
 
         @Test
         void one() {
-            assertEquals(1.0, eval("1!"), EPS);
+            assertEquals(1.0, eval("1!"), EPSILON);
         }
 
         @Test
         void five() {
-            assertEquals(120.0, eval("5!"), EPS);
+            assertEquals(120.0, eval("5!"), EPSILON);
         }
 
         @Test
         void ten() {
-            assertEquals(3628800.0, eval("10!"), EPS);
+            assertEquals(3628800.0, eval("10!"), EPSILON);
         }
 
         @Test
         void thirteen() {
-            assertEquals(6227020800.0, eval("13!"), EPS);
+            assertEquals(6227020800.0, eval("13!"), EPSILON);
         }
 
         @Test
-        @DisplayName("БАГ: 0! возвращает NaN вместо 1 (не входит в диапазон точного вычисления x>=1)")
-        void zeroFactorialIsActuallyNaNDueToImplementationBug() {
-            double result = eval("0!");
-            assertTrue(Double.isNaN(result), "Expected current (buggy) behaviour: 0! = NaN, got " + result);
-            assertFalse(isValid("0!"));
+        @DisplayName("0! = 1")
+        void zeroFactorialIsOne() {
+            assertEquals(1.0, eval("0!"), EPSILON);
+            assertTrue(isValid("0!"));
         }
 
         @Test
-        @DisplayName("Факториал отрицательного целого тоже даёт NaN (sqrt отрицательного в приближении Стирлинга)")
+        @DisplayName("Factorial of a negative integer is NaN")
         void negativeIntegerFactorialIsNaN() {
             assertTrue(Double.isNaN(eval("(-1)!")));
         }
 
         @Test
         void fractionalFactorialUsesStirlingApproximation() {
-            // 5.5! = Gamma(6.5) ≈ 287.885
+            // 5.5! = Gamma(6.5) ~ 287.885
             double result = eval("5.5!");
             assertTrue(Double.isFinite(result));
             assertEquals(287.885, result, 0.5);
         }
 
         @Test
+        void fractionalFactorialOfSmallArgumentIsAccurate() {
+            // 0.5! = Gamma(1.5) = sqrt(pi) / 2
+            assertEquals(0.886226925, eval("0.5!"), 1e-6);
+        }
+
+        @Test
         void doubleFactorialOperator() {
-            assertEquals(720.0, eval("3!!"), EPS); // (3!)! = 6! = 720
+            assertEquals(720.0, eval("3!!"), EPSILON); // (3!)! = 6! = 720
+        }
+
+        @Test
+        void factorialAboveLimitOverflowsToInfinity() {
+            assertEquals(Double.POSITIVE_INFINITY, eval("171!"));
+            assertFalse(isValid("171!"));
         }
     }
 
     // Static utility methods, tested directly (no config dependency)
 
     @Nested
-    @DisplayName("Статические утилиты (mod/gcf/lcm/factorial)")
+    @DisplayName("Static utilities (mod/gcf/lcm/factorial)")
     class StaticHelpers {
 
         @Test
         void modMatchesSignOfDivisor() {
-            assertEquals(2.0, MathEngine.mod(5, 3), EPS);
-            assertEquals(1.0, MathEngine.mod(-5, 3), EPS);
-            assertEquals(-1.0, MathEngine.mod(5, -3), EPS);
-            assertEquals(-2.0, MathEngine.mod(-5, -3), EPS);
+            assertEquals(2.0, MathEngine.mod(5, 3), EPSILON);
+            assertEquals(1.0, MathEngine.mod(-5, 3), EPSILON);
+            assertEquals(-1.0, MathEngine.mod(5, -3), EPSILON);
+            assertEquals(-2.0, MathEngine.mod(-5, -3), EPSILON);
+        }
+
+        @Test
+        void modWithZeroRemainder() {
+            assertEquals(0.0, MathEngine.mod(-6, 3), EPSILON);
+            assertEquals(0.0, MathEngine.mod(6, -3), EPSILON);
         }
 
         @Test
         void gcfBasic() {
-            assertEquals(6.0, MathEngine.gcf(48, 18), EPS);
-            assertEquals(5.0, MathEngine.gcf(0, 5), EPS);
-            assertEquals(5.0, MathEngine.gcf(5, 0), EPS);
-            assertEquals(0.0, MathEngine.gcf(0, 0), EPS);
+            assertEquals(6.0, MathEngine.gcf(48, 18), EPSILON);
+            assertEquals(5.0, MathEngine.gcf(0, 5), EPSILON);
+            assertEquals(5.0, MathEngine.gcf(5, 0), EPSILON);
+            assertEquals(0.0, MathEngine.gcf(0, 0), EPSILON);
+        }
+
+        @Test
+        void gcfDoesNotHangOnNaN() {
+            assertTimeoutPreemptively(Duration.ofSeconds(2),
+                                      () -> assertTrue(Double.isNaN(MathEngine.gcf(Double.NaN, 1))));
+        }
+
+        @Test
+        void gcfAndLcmHandleNegatives() {
+            assertEquals(6.0, MathEngine.gcf(-48, 18), EPSILON);
+            assertEquals(12.0, MathEngine.lcm(-4, 6), EPSILON);
         }
 
         @Test
         void lcmBasic() {
-            assertEquals(12.0, MathEngine.lcm(4, 6), EPS);
-            assertEquals(0.0, MathEngine.lcm(0, 5), EPS);
+            assertEquals(12.0, MathEngine.lcm(4, 6), EPSILON);
+            assertEquals(0.0, MathEngine.lcm(0, 5), EPSILON);
         }
 
         @Test
         void factorialBasic() {
-            assertEquals(120.0, MathEngine.factorial(5), EPS);
-            assertEquals(1.0, MathEngine.factorial(1), EPS);
-            assertEquals(6227020800.0, MathEngine.factorial(13), EPS);
+            assertEquals(120.0, MathEngine.factorial(5), EPSILON);
+            assertEquals(1.0, MathEngine.factorial(1), EPSILON);
+            assertEquals(6227020800.0, MathEngine.factorial(13), EPSILON);
         }
 
         @Test
-        void factorialEdgeCasesAreNaN() {
-            assertTrue(Double.isNaN(MathEngine.factorial(0)));
+        void factorialEdgeCases() {
+            assertEquals(1.0, MathEngine.factorial(0), EPSILON);
             assertTrue(Double.isNaN(MathEngine.factorial(-1)));
+            assertTrue(Double.isNaN(MathEngine.factorial(Double.NaN)));
         }
     }
 
     // Error handling / isValid
 
     @Nested
-    @DisplayName("Обработка ошибок и isValid")
+    @DisplayName("Error handling and isValid")
     class ErrorHandling {
 
         @Test
@@ -795,13 +848,25 @@ class MathEngineTest {
         }
 
         @Test
-        void unmatchedFunctionParenThrows() {
-            assertThrows(ExpressionException.class, () -> eval("sqrt(4"));
+        void unmatchedFunctionParenIsAutoBalanced() {
+            assertEquals(2.0, eval("sqrt(4"), EPSILON);
         }
 
         @Test
         void unexpectedCharacterThrows() {
             assertThrows(ExpressionException.class, () -> eval("2#3"));
+        }
+
+        @Test
+        void malformedNumberThrowsExpressionException() {
+            assertThrows(ExpressionException.class, () -> eval("1.2.3"));
+            assertThrows(ExpressionException.class, () -> eval("."));
+        }
+
+        @Test
+        void deepNestingThrowsInsteadOfOverflowingTheStack() {
+            assertThrows(ExpressionException.class, () -> eval("-".repeat(5000) + "1"));
+            assertThrows(ExpressionException.class, () -> eval("(".repeat(5000) + "1" + ")".repeat(5000)));
         }
 
         @Test
@@ -831,7 +896,7 @@ class MathEngineTest {
     // These don't touch ChatConfigManager, unlike MathEngine.getAvailableSymbols().
 
     @Nested
-    @DisplayName("Таблицы встроенных функций и констант")
+    @DisplayName("Built-in function and constant tables")
     class SymbolTables {
 
         @Test
@@ -863,31 +928,31 @@ class MathEngineTest {
     // Kitchen-sink expressions combining many features
 
     @Nested
-    @DisplayName("Комплексные выражения")
+    @DisplayName("Complex expressions")
     class ComplexExpressions {
 
         @Test
         void factorialsFunctionsAndImplicitMultiplication() {
             // 3! + 2(1+1) - sqrt(9)*2 + abs(-4)/2 = 6 + 4 - 6 + 2 = 6
-            assertEquals(6.0, eval("3!+2(1+1)-sqrt(9)*2+abs(-4)/2"), EPS);
+            assertEquals(6.0, eval("3!+2(1+1)-sqrt(9)*2+abs(-4)/2"), EPSILON);
         }
 
         @Test
         void nestedGroupsWithPowerAndImplicitMultiplication() {
             // (2+3)(4-1)^2 - 10/(5-3)*2 = 5*9 - 10 = 35
-            assertEquals(35.0, eval("(2+3)(4-1)^2-10/(5-3)*2"), EPS);
+            assertEquals(35.0, eval("(2+3)(4-1)^2-10/(5-3)*2"), EPSILON);
         }
 
         @Test
         void deeplyNestedFunctionsAndConstants() {
             // sqrt(abs(-16)) + floor(pi) - ceil(-1.2) + max(1;2;3) = 4 + 3 - (-1) + 3 = 11
-            assertEquals(11.0, eval("sqrt(abs(-16))+floor(pi)-ceil(-1.2)+max(1;2;3)"), EPS);
+            assertEquals(11.0, eval("sqrt(abs(-16))+floor(pi)-ceil(-1.2)+max(1;2;3)"), EPSILON);
         }
 
         @Test
         void everythingAtOnce() {
             // 2^3! - 5%3 + gcf(12;18) - clamp(50;0;10)/2 + sgn(-7) = 64 - 2 + 6 - 5 - 1 = 62
-            assertEquals(62.0, eval("2^3!-5%3+gcf(12;18)-clamp(50;0;10)/2+sgn(-7)"), EPS);
+            assertEquals(62.0, eval("2^3!-5%3+gcf(12;18)-clamp(50;0;10)/2+sgn(-7)"), EPSILON);
         }
     }
 }

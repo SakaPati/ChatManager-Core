@@ -1,6 +1,8 @@
 package ru.fozeton.chatmanager.module;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.config.MathConfig;
@@ -25,12 +27,10 @@ import java.util.stream.DoubleStream;
  * - Built-in functions: see {@link MathFunctionEnum}
  * - Custom constants and functions defined in {@link MathConfig}
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MathEngine {
     @Getter
     private static final MathEngine instance = new MathEngine();
-
-    private MathEngine() {
-    }
 
     /**
      * Balances an expression by prepending/appending missing parentheses, so that
@@ -176,6 +176,42 @@ public final class MathEngine {
     }
 
     /**
+     * Returns the sign of {@code value}: -1, 0 or 1. NaN and zero (including -0.0) both give 0.
+     *
+     * @param value the value to inspect
+     * @return the sign of {@code value}
+     */
+    private static double sign(double value) {
+        if (Double.isNaN(value) || value == 0.0d) {
+            return 0.0d;
+        }
+        if (value > 0.0d) {
+            return 1.0d;
+        }
+        return -1.0d;
+    }
+
+    /**
+     * Restricts {@code value} to the range [{@code min}, {@code max}] using {@link Math#clamp(double, double, double)}.
+     * A NaN {@code value} stays NaN; a NaN bound gives NaN.
+     *
+     * @param value the value to restrict
+     * @param min   the lower bound
+     * @param max   the upper bound
+     * @return the restricted value
+     * @throws ExpressionException if {@code min} is greater than {@code max}
+     */
+    private static double clamp(double value, double min, double max) {
+        if (Double.isNaN(min) || Double.isNaN(max)) {
+            return Double.NaN;
+        }
+        if (min > max) {
+            throw new ExpressionException("clamp: min (" + min + ") must not be greater than max (" + max + ")");
+        }
+        return Math.clamp(value, min, max);
+    }
+
+    /**
      * Evaluates a mathematical expression.
      *
      * @param input the expression string
@@ -187,7 +223,13 @@ public final class MathEngine {
         Map<String, Double> customConstants = parseConstants(config.getConstants());
         Map<String, CustomFunctionDef> customFunctions = parseFunctions(config.getFunctions());
 
-        Parser parser = new Parser(fixParenthesis(input), config.isRadians(), customConstants, customFunctions, Map.of());
+        Parser parser = new Parser(
+                fixParenthesis(input),
+                config.isRadians(),
+                customConstants,
+                customFunctions,
+                Map.of()
+        );
         double result = parser.parseExpression();
         parser.expectEnd();
         return result;
@@ -298,7 +340,7 @@ public final class MathEngine {
             int equalsIndex = line.indexOf('=');
             int openParenIndex = line.indexOf('(');
             int closeParenIndex = line.indexOf(')');
-            if (openParenIndex < 0 || closeParenIndex < 0
+            if (equalsIndex < 0 || openParenIndex < 0 || closeParenIndex < 0
                 || openParenIndex > closeParenIndex || closeParenIndex > equalsIndex) {
                 return null;
             }
@@ -563,7 +605,8 @@ public final class MathEngine {
                 if (!function.matchesArity(values.length)) {
                     throw new ExpressionException("Function '" + name + "' expects "
                                                   + function.getMinArgs()
-                                                  + (function.getMinArgs() == function.getMaxArgs() ? "" : ".." + function.getMaxArgs())
+                                                  + (function.getMinArgs() == function.getMaxArgs() ? "" :
+                            ".." + function.getMaxArgs())
                                                   + " argument(s), got " + values.length);
                 }
 
@@ -586,9 +629,7 @@ public final class MathEngine {
                     case CEIL -> Math.ceil(values[0]);
                     case ROUND -> Math.floor(values[0] + 0.5d);
                     case ABS -> Math.abs(values[0]);
-                    case SGN -> Double.isNaN(values[0]) || values[0] + 0.0d == 0.0d
-                            ? 0.0d
-                            : (values[0] >= 0.0d ? 1.0d : -1.0d);
+                    case SGN -> sign(values[0]);
                     case LOG -> values.length == 1
                             ? Math.log10(values[0])
                             : Math.log(values[1]) / Math.log(values[0]);
@@ -598,7 +639,7 @@ public final class MathEngine {
                     case MAX -> DoubleStream.of(values).max().orElseThrow();
                     case GCF -> DoubleStream.of(values).reduce(MathEngine::gcf).orElseThrow();
                     case LCM -> DoubleStream.of(values).reduce(MathEngine::lcm).orElseThrow();
-                    case CLAMP -> Math.max(values[1], Math.min(values[2], values[0]));
+                    case CLAMP -> clamp(values[0], values[1], values[2]);
                     case CMP -> {
                         double tolerance = values.length == 2 ? 0.0d : values[2];
                         if (Math.abs(values[0] - values[1]) <= tolerance) yield 0.0d;
@@ -618,8 +659,10 @@ public final class MathEngine {
                     parameters.put(definition.params()[index], values[index]);
                 }
 
-                Parser innerParser = new Parser(fixParenthesis(definition.expression()), radians,
-                                                customConstants, customFunctions, parameters);
+                Parser innerParser = new Parser(
+                        fixParenthesis(definition.expression()), radians,
+                        customConstants, customFunctions, parameters
+                );
                 innerParser.callDepth = callDepth + 1;
 
                 double result = innerParser.parseExpression();
