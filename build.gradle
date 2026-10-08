@@ -2,6 +2,7 @@ plugins {
     id 'net.fabricmc.fabric-loom' version '1.18-SNAPSHOT' apply false
     id 'net.fabricmc.fabric-loom-remap' version '1.18-SNAPSHOT' apply false
     id 'net.neoforged.moddev' version '2.0.142' apply false
+    id 'io.freefair.lombok' version '8.10.2' apply false
 }
 
 allprojects {
@@ -10,6 +11,8 @@ allprojects {
 }
 
 subprojects {
+    apply plugin: 'io.freefair.lombok'
+
     repositories {
         mavenCentral()
         maven {
@@ -20,6 +23,10 @@ subprojects {
     }
 
     pluginManager.withPlugin('java') {
+        java {
+            withSourcesJar()
+        }
+
         base.archivesName = "${rootProject.archives_name}-${project.parent.name}-${project.name}"
 
         pluginManager.apply('maven-publish')
@@ -50,11 +57,18 @@ subprojects {
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
 
+        tasks.withType(Javadoc).configureEach {
+            dependsOn = dependsOn.findAll { !(it.toString().contains('delombok')) }
+            source = sourceSets.main.allJava
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+
         dependencies {
-            implementation 'com.alphacephei:vosk:0.3.45'
             implementation 'blue.endless:jankson:1.2.3'
             compileOnly 'org.projectlombok:lombok:1.18.48'
             annotationProcessor 'org.projectlombok:lombok:1.18.48'
+            testCompileOnly 'org.projectlombok:lombok:1.18.48'
+            testAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
             testImplementation platform('org.junit:junit-bom:5.11.0')
             testImplementation 'org.junit.jupiter:junit-jupiter'
             testImplementation 'org.junit.jupiter:junit-jupiter-params'

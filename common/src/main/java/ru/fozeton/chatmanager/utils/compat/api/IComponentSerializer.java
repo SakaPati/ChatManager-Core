@@ -4,4 +4,5 @@ import net.minecraft.network.chat.Component;
 
 public interface IComponentSerializer {
     String toJson(Component component);
+    Component fromJson(String json);
 }

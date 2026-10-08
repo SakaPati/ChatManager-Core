@@ -20,10 +20,10 @@ public interface ChatMessageParser {
                 : packet.chatType().decorate(Component.literal(packet.body().content()));
 
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 packet.chatType().name().getString(),
+                content,
                 useTimeFormatter(content),
-                packet.body().content(),
                 MessageType.PLAYER,
                 packet.body().timeStamp()
         );
@@ -40,21 +40,21 @@ public interface ChatMessageParser {
         }
 
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 null,
+                content,
                 useTimeFormatter(content),
-                content.getSiblings().isEmpty() ? content.getString() : content.getSiblings().getLast().getString(),
                 type,
                 Instant.now()
         );
     }
 
-    default Message parseAddedMessageLocalChat(Component component) {
+    default Message parseAddedMessageLocalChat(Component content) {
         return new Message(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 null,
-                component,
-                component.getString(),
+                content,
+                useTimeFormatter(content),
                 MessageType.CLIENT,
                 Instant.now()
         );
@@ -66,7 +66,7 @@ public interface ChatMessageParser {
 
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
         String fullDate = new SimpleDateFormat("HH:mm:ss.SSS dd.MM.yyyy").format(new Date());
-        int color = Long.decode(channelsConfig.getTimeColor()).intValue();
+        int color = channelsConfig.getTimeColor();
 
         Component timePart = Component.literal(time + " ")
                 .withColor(color)

@@ -6,10 +6,12 @@ import lombok.RequiredArgsConstructor;
 import ru.fozeton.chatmanager.channel.ChatChannel;
 import ru.fozeton.chatmanager.messages.Message;
 
+import java.util.UUID;
+
 @Getter
 @RequiredArgsConstructor
 public class MessageStackEvent extends Event<MessageStackEvent> {
-    private final String id;
+    private final UUID id;
     private final Message message;
     private final ChatChannel channel;
 }

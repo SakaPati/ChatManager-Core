@@ -3,6 +3,8 @@ package ru.fozeton.chatmanager.utils;
 import ru.fozeton.chatmanager.ChatManagerCore;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -34,8 +36,24 @@ public class Logger {
         addLog("WARN", msg);
     }
 
+    public void warn(String msg, Throwable e) {
+        addLog("WARN", msg + "\n" + getStackTrace(e));
+    }
+
     public void error(String msg) {
         addLog("ERROR", msg);
+    }
+
+    public void error(String msg, Throwable e) {
+        addLog("ERROR", msg + "\n" + getStackTrace(e));
+    }
+
+    private String getStackTrace(Throwable e) {
+        if (e == null) return "";
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
     }
 
     protected void addLog(String level, String msg) {
@@ -53,7 +71,6 @@ public class Logger {
         }
     }
 
-    private record LogEntry(long timestamp, String prefix, String level, String msg) {
-    }
+    private record LogEntry(long timestamp, String prefix, String level, String msg) {}
     private Path logsDir() { return ChatManagerCore.getGameDir().resolve("logs"); }
 }

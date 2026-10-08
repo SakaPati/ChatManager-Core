@@ -45,7 +45,7 @@ public abstract class ClientChatMixin extends ClientCommonPacketListenerImpl {
                 (ClientPacketListener) (Object) this
         );
         Message msg = ChatManagerCore.getMessageParser().parsePlayerChat(clientboundPlayerChatPacket);
-        if (GIF_PATTERN.matcher(msg.getPlainText()).find()) msg.setType(MessageType.ANIMATED);
+        if (GIF_PATTERN.matcher(msg.getFullPlain()).find()) msg.setType(MessageType.ANIMATED);
         ChatManagerCore.EVENT_BUS.activate(new MessageReceivedEvent(msg));
         ci.cancel();
     }
@@ -57,7 +57,7 @@ public abstract class ClientChatMixin extends ClientCommonPacketListenerImpl {
                 (ClientPacketListener) (Object) this
         );
         Message msg = ChatManagerCore.getMessageParser().parseSystemChat(clientboundSystemChatPacket);
-        if (GIF_PATTERN.matcher(msg.getPlainText()).find()) msg.setType(MessageType.ANIMATED);
+        if (GIF_PATTERN.matcher(msg.getFullPlain()).find()) msg.setType(MessageType.ANIMATED);
         ChatManagerCore.EVENT_BUS.activate(new MessageReceivedEvent(msg));
         ci.cancel();
     }

@@ -1,5 +1,7 @@
 package ru.fozeton.chatmanager.utils;
 
+import ru.fozeton.chatmanager.exceptions.DependencyLoadException;
+import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.stt.VoskContext;
 import ru.fozeton.chatmanager.utils.stt.VoskFactory;
 
@@ -23,7 +25,7 @@ import java.nio.file.StandardCopyOption;
  * wrapper JARs by default.
  */
 public class DependencyLoader {
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = NetworkManager.getInstance().getClient();
     private static final String VOSK_URL = "https://repo1.maven.org/maven2/com/alphacephei/vosk/0.3.45/vosk-0.3.45.jar";
 
     /**
@@ -31,7 +33,7 @@ public class DependencyLoader {
      * downloads it if missing, and injects it into the application's classpath dynamically.
      *
      * @param libsFolder the folder where dependencies should be stored
-     * @throws RuntimeException if the download or classpath injection fails
+     * @throws DependencyLoadException if the download or classpath injection fails
      */
     public static void loadDependencies(Path libsFolder) {
         try {
@@ -46,7 +48,7 @@ public class DependencyLoader {
             addToClasspath(voskJar);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load dependency Vosk", e);
+            throw new DependencyLoadException("Failed to load dependency Vosk", e);
         }
     }
 
@@ -72,7 +74,7 @@ public class DependencyLoader {
      * global {@link VoskContext} so that proxy classes can be generated.
      *
      * @param jarPath the local filesystem path to the downloaded JAR file
-     * @throws RuntimeException if the path cannot be converted to a valid URL
+     * @throws DependencyLoadException if the path cannot be converted to a valid URL
      */
     public static void addToClasspath(Path jarPath) {
         try {
@@ -80,7 +82,7 @@ public class DependencyLoader {
             URLClassLoader cl = new URLClassLoader(new URL[]{url}, DependencyLoader.class.getClassLoader());
             VoskContext.setFactory(new VoskFactory(cl));
         } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
+            throw new DependencyLoadException(e);
         }
     }
 }

@@ -7,6 +7,8 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.config.VoiceConfig;
 import ru.fozeton.chatmanager.events.speech.*;
+import ru.fozeton.chatmanager.exceptions.SpeechToTextException;
+import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.Logger;
 import ru.fozeton.chatmanager.utils.stt.VoiceIndicator;
 import ru.fozeton.chatmanager.utils.stt.VoskContext;
@@ -25,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -60,7 +63,7 @@ import java.util.zip.ZipInputStream;
  */
 public class SpeechToText {
     private static final Logger log = new Logger(SpeechToText.class);
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = NetworkManager.getInstance().getClient();
 
     /**
      * Root directory where all language models are stored: {@code <config>/language_models}.
@@ -76,9 +79,11 @@ public class SpeechToText {
      * Language of {@link #cached}. Guarded by the class monitor.
      */
     private static Language cachedLanguage;
-
+    /**
+     * True while transcription() is running; the cached model must not be unloaded or deleted then.
+     */
+    private static AtomicBoolean busy = new AtomicBoolean();
     private final VoiceConfig config = ChatConfigManager.getInstance().getVoiceConfig();
-
     /**
      * Native Vosk model owned by this instance. Closed only through {@link #unload()}.
      */
@@ -130,8 +135,8 @@ public class SpeechToText {
      *
      * @param language the language model to load
      * @return the cached or newly created instance
-     * @throws RuntimeException if the model is missing or fails to load natively
-     *                          (in that case a {@link VoskModelAbsentEvent} is fired by the {@link Builder})
+     * @throws SpeechToTextException if the model is missing or fails to load natively
+     *                               (in that case a {@link VoskModelAbsentEvent} is fired by the {@link Builder})
      */
     public static synchronized SpeechToText get(Language language) {
         if (cached != null && cachedLanguage == language) return cached;
@@ -157,9 +162,6 @@ public class SpeechToText {
         }
     }
 
-    /** True while transcription() is running; the cached model must not be unloaded or deleted then. */
-    private static volatile boolean busy;
-
     /**
      * Deletes the model folder from disk. If the model is currently loaded in memory, it is unloaded first.
      *
@@ -167,7 +169,7 @@ public class SpeechToText {
      * @return true if the model is gone, false if it is in use (recording) or deletion failed
      */
     public static synchronized boolean delete(Language language) {
-        if (busy && cachedLanguage == language) return false;
+        if (busy.get() && cachedLanguage == language) return false;
         if (cachedLanguage == language) unload();
 
         Path dir = models.resolve(language.getPath()).resolve(language.getModel());
@@ -213,6 +215,13 @@ public class SpeechToText {
                                 HttpResponse.BodyHandlers.ofInputStream()
                         );
 
+                        if (response.statusCode() >= 400 ||
+                            response.headers()
+                                    .firstValue("Content-Type")
+                                    .orElse("")
+                                    .contains("text/html")
+                        ) return;
+
                         Path path = models.resolve(languageModel.path);
                         if (!Files.exists(path)) Files.createDirectories(path);
 
@@ -256,16 +265,16 @@ public class SpeechToText {
      * Captures audio from the default microphone (16 kHz, 16-bit, mono) and feeds it to a new
      * Vosk recognizer. While the user speaks, {@link VoskPartialResultEvent} is fired with the
      * intermediate text. Recognition finishes when Vosk reports a final result AND no voice
-     * (level &gt;= 0.15) has been detected for {@link VoiceConfig#getVoiceDelayMs()} milliseconds;
+     * (level &gt;= 0.15) has been detected for {@link ru.fozeton.chatmanager.config.VoiceConfig#getVoiceDelayMs()} milliseconds;
      * then {@link VoskResultEvent} is fired with the final text and the method returns.
      * <p>
      * If the microphone line is not supported, {@link VoskNotSupportMicroEvent} is fired and the
      * method returns without throwing. {@link VoiceIndicator#finished()} is always called on exit.
      *
-     * @throws IOException      if an I/O error occurs while preparing the language directory
-     * @throws RuntimeException if audio line initialization fails or Vosk encounters an error
+     * @throws IOException           if an I/O error occurs while preparing the language directory
+     * @throws SpeechToTextException if audio line initialization fails or Vosk encounters an error
      */
-    public void transcription() throws IOException, RuntimeException {
+    public void transcription() throws IOException, SpeechToTextException {
         Path languagePath = models.resolve(language.getPath());
         long lastActiveVoice = 0;
 
@@ -280,7 +289,7 @@ public class SpeechToText {
             return;
         }
 
-        busy = true;
+        busy.set(true);
         try (
                 TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
                 InputStream ais = new AudioInputStream(line);
@@ -313,9 +322,9 @@ public class SpeechToText {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new SpeechToTextException(e);
         } finally {
-            busy = false;
+            busy.set(false);
             VoiceIndicator.finished();
         }
     }
@@ -327,7 +336,7 @@ public class SpeechToText {
      * Models are stored as {@code language_models/<path>/<model>/} and downloaded from
      * {@code https://alphacephei.com/vosk/models/<model>.zip}. Several models can share the same
      * {@code path} (e.g. small and full versions of one language).
-     * The enum constant name (e.g. {@code RUSSIAN_SMALL}) is what {@link VoiceConfig#getModel()} stores.
+     * The enum constant name (e.g. {@code RUSSIAN_SMALL}) is what {@link ru.fozeton.chatmanager.config.VoiceConfig#getModel()} stores.
      */
     @Getter
     public enum Language {
@@ -452,8 +461,8 @@ public class SpeechToText {
          * This is a slow, memory-heavy operation for large models.
          *
          * @param language the target STT language
-         * @throws RuntimeException if the model is missing or fails to instantiate natively;
-         *                          a {@link VoskModelAbsentEvent} with the expected path is fired first
+         * @throws SpeechToTextException if the model is missing or fails to instantiate natively;
+         *                               a {@link VoskModelAbsentEvent} with the expected path is fired first
          */
         public Builder(Language language) {
             Path models = ChatManagerCore.getConfigDir().resolve("language_models");
@@ -465,7 +474,7 @@ public class SpeechToText {
                 this.language = language;
             } catch (Exception e) {
                 ChatManagerCore.EVENT_BUS.activate(new VoskModelAbsentEvent(modelPath));
-                throw new RuntimeException(e);
+                throw new SpeechToTextException(e);
             }
         }
 

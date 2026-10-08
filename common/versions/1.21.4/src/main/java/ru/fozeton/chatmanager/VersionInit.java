@@ -17,5 +17,6 @@ public final class VersionInit {
         PacketCompatProvider.setInstance(PacketCompat1_21_4.getInstance());
         ScreenProvider.setInstance(Screen1_21_4.getInstance());
         GameProfileProvider.setInstance(GameProfile1_21_4.getInstance());
+        LocalPlayerProvider.setInstance(LocalPlayer1_21_4.getInstance());
     }
 }

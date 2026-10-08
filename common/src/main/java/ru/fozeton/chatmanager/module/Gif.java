@@ -5,8 +5,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import ru.fozeton.chatmanager.ChatManagerCore;
+import ru.fozeton.chatmanager.exceptions.GifException;
 import ru.fozeton.chatmanager.module.gif.GifsResponse;
 import ru.fozeton.chatmanager.module.gif.McAnim;
+import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
 
 import java.io.IOException;
@@ -15,8 +17,11 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -33,7 +38,7 @@ public class Gif {
     private static final String BASE_URL = "https://core.chatmanager.workers.dev/gifs/";
     private static final Executor EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private final Path gifPath = ChatManagerCore.getConfigDir().resolve("cache");
-    private final HttpClient client = HttpClient.newHttpClient();
+    private final HttpClient client = NetworkManager.getInstance().getClient();
     private final Gson gson = new Gson();
 
     private static boolean isNotWebp(byte[] bytes) {
@@ -43,8 +48,22 @@ public class Gif {
     }
 
     private String customerParam() {
-        String id = String.format("%s_%s", GameProfileProvider.getName(), GameProfileProvider.getId());
-        return "&customer_id=" + URLEncoder.encode(id, UTF_8);
+        try {
+            String id = String.format("%s_%s", GameProfileProvider.getName(), GameProfileProvider.getId());
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(id.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return "&customer_id=" + URLEncoder.encode(hexString.toString(), UTF_8);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new GifException(ex);
+        }
     }
 
     public CompletableFuture<Boolean> download(String gifId) {
@@ -55,6 +74,7 @@ public class Gif {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
+                        Files.createDirectories(Path.of(path));
                         byte[] webpBytes = getWebpBytes(gifId).get();
                         if (isNotWebp(webpBytes)) return false;
                         return McAnim.INSTANCE.convert_webp(
@@ -63,8 +83,8 @@ public class Gif {
                                 gifId + ".mcanim",
                                 path
                         );
-                    } catch (InterruptedException | ExecutionException e) {
-                        throw new RuntimeException(e);
+                    } catch (InterruptedException | ExecutionException | IOException e) {
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -81,7 +101,7 @@ public class Gif {
                         if (isNotWebp(webp)) return false;
                         return McAnim.INSTANCE.convert_webp(webp, webp.length, name + ".mcanim", dir);
                     } catch (IOException | InterruptedException e) {
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -99,13 +119,13 @@ public class Gif {
                     try {
                         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                         if (response.statusCode() != 200) {
-                            throw new IOException("items HTTP " + response.statusCode() + " for " + gifId);
+                            throw new GifException("items HTTP " + response.statusCode() + " for " + gifId);
                         }
 
                         GifsResponse list = gson.fromJson(response.body(), GifsResponse.class);
                         if (list == null || list.getData() == null
                             || list.getData().getData() == null || list.getData().getData().isEmpty()) {
-                            throw new IOException("Gif not found: " + gifId);
+                            throw new GifException("Gif not found: " + gifId);
                         }
 
                         String url = list.getData().getData().getFirst().getFile().getXs().getAnimated().getUrl();
@@ -116,10 +136,10 @@ public class Gif {
 
                         return client.send(gifRequest, HttpResponse.BodyHandlers.ofByteArray()).body();
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -142,10 +162,10 @@ public class Gif {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return gson.fromJson(response.body(), GifsResponse.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new GifException(e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new GifException(e);
         }
     }
 

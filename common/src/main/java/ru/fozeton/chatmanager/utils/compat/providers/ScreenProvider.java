@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.IScreen;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -17,7 +18,7 @@ public class ScreenProvider {
 
     private static IScreen require() {
         if (instance == null) {
-            throw new IllegalStateException("""
+            throw new NotInitializedException("""
                     IScreen has not been initialized!
                     Please call ScreenProvider.setInstance(...) during client initialization.
                     """.stripIndent());

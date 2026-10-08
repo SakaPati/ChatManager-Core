@@ -5,8 +5,12 @@ import com.ferra13671.megaevents.eventbus.impl.EventBus;
 import lombok.Getter;
 import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
+import ru.fozeton.chatmanager.module.ChatActions;import ru.fozeton.chatmanager.network.NetworkManager;
+import ru.fozeton.chatmanager.network.WebHooksHandler;
+import ru.fozeton.chatmanager.network.WebSocketHandler;
 import ru.fozeton.chatmanager.utils.DependencyLoader;
 import ru.fozeton.chatmanager.utils.TickCounter;
 
@@ -17,8 +21,7 @@ import java.util.regex.Pattern;
 
 public final class ChatManagerCore {
     public static final String MOD_ID = "chatmanager_core";
-    public static final Pattern GIF_PATTERN = Pattern.compile(":((?=[A-Za-z0-9_-]*-)[A-Za-z0-9_-]{2,120}|\\d{15,19}):");
-    public static final IEventBus EVENT_BUS = new EventBus();
+    public static final Pattern GIF_PATTERN = Pattern.compile(":((?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{2,120}|\\d{15,19}):");    public static final IEventBus EVENT_BUS = new EventBus();
     @Getter
     private static final Map<String, ChatChannel> channels = new HashMap<>();
     @Getter
@@ -33,6 +36,9 @@ public final class ChatManagerCore {
         DependencyLoader.loadDependencies(configDir.resolve("libs"));
         TickCounter.getInstance();
         registerChannel("Default", new ChatChannel("Default", "Основной"));
+        NetworkManager.getInstance().setWebHooksHandler(new WebHooksHandler());
+        NetworkManager.getInstance().setWebSocketHandler(new WebSocketHandler()).connection();
+        ChatActions.getInstance();
     }
 
     public static void registerChannel(String channelId, ChatChannel channel) {
@@ -44,12 +50,12 @@ public final class ChatManagerCore {
     }
 
     public static Path getConfigDir() {
-        if (configDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        if (configDir == null) throw new NotInitializedException("ChatManagerCore.init() не вызван");
         return configDir;
     }
 
     public static Path getGameDir() {
-        if (gameDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        if (gameDir == null) throw new NotInitializedException("ChatManagerCore.init() не вызван");
         return gameDir;
     }
 }

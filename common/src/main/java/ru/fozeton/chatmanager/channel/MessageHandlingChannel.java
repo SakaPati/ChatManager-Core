@@ -1,45 +1,52 @@
 package ru.fozeton.chatmanager.channel;
 
 import com.ferra13671.megaevents.eventbus.EventSubscriber;
-import com.google.gson.Gson;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import org.jetbrains.annotations.Nullable;
 import ru.fozeton.chatmanager.ChatManagerCore;
-import ru.fozeton.chatmanager.config.ChannelsConfig;
-import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.events.MessageReceivedEvent;
 import ru.fozeton.chatmanager.events.PlayerMentionedEvent;
 import ru.fozeton.chatmanager.messages.Message;
 import ru.fozeton.chatmanager.messages.MessageHandler;
 import ru.fozeton.chatmanager.messages.MessageType;
-import ru.fozeton.chatmanager.utils.Logger;
-import ru.fozeton.chatmanager.utils.compat.providers.ComponentSerializerProvider;
+import ru.fozeton.chatmanager.network.NetworkManager;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Processing pipeline for incoming chat messages.
+ * <p>
+ * Listens for {@link MessageReceivedEvent} and runs each message through a fixed sequence of steps:
+ * pre-process (can cancel), modify, filter, post-process, mention detection and network dispatch.
+ * Subclasses override the {@code on*} methods to customize the steps.
+ */
 public class MessageHandlingChannel {
-    protected final ChannelsConfig channelsConfig = ChatConfigManager.getInstance().getChannelsConfig();
-    private final Logger log = new Logger(MessageHandlingChannel.class);
-    private final Gson gson = new Gson();
+    /** Registered message handlers. */
     @Getter
     private final List<MessageHandler> handlers = new ArrayList<>();
-    private final HttpClient client = HttpClient.newHttpClient();
 
+    /** Creates the pipeline and subscribes it to the event bus. */
     public MessageHandlingChannel() {
         ChatManagerCore.EVENT_BUS.register(this);
     }
 
+    /**
+     * Registers a message handler.
+     *
+     * @param handler the handler to add
+     */
     public void registerHandler(MessageHandler handler) {
         handlers.add(handler);
     }
 
+    /**
+     * Runs the received message through all processing steps in order.
+     * Stops early if {@link #onPreProcess(Message)} returns {@code false}.
+     *
+     * @param event the received message event
+     */
     @EventSubscriber(event = MessageReceivedEvent.class)
     public void handle(MessageReceivedEvent event) {
         Message message = event.getMessage();
@@ -52,79 +59,60 @@ public class MessageHandlingChannel {
         onNetworkDispatch(message);
     }
 
+    /**
+     * First step, runs before any changes to the message.
+     *
+     * @param message the incoming message
+     * @return {@code false} to drop the message and skip all further steps, {@code true} to continue
+     */
     protected boolean onPreProcess(Message message) {
         return true;
     }
 
+    /**
+     * Step for changing the message content or properties. Does nothing by default.
+     *
+     * @param message the message to modify
+     */
     protected void onMessageModify(Message message) {
     }
 
+    /**
+     * Step for filtering the message, for example hiding or marking unwanted text. Does nothing by default.
+     *
+     * @param message the message to filter
+     */
     protected void onFilterMessage(Message message) {
     }
 
+    /**
+     * Step that runs after modification and filtering. Does nothing by default.
+     *
+     * @param message the processed message
+     */
     protected void onPostProcess(Message message) {
     }
 
+    /**
+     * Checks whether the local player is mentioned as {@code @name}. If so, marks the message as
+     * {@link MessageType#MENTIONED} and publishes a {@link PlayerMentionedEvent}.
+     *
+     * @param message the message to check
+     */
     protected void onMentionedProcess(Message message) {
         LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null && message.getPlainText().contains("@%s".formatted(player.getName().getString()))) {
+        if (player != null && message.getFullPlain().contains("@%s".formatted(player.getName().getString()))) {
             message.setType(MessageType.MENTIONED);
             ChatManagerCore.EVENT_BUS.activate(new PlayerMentionedEvent(message, message.getAuthor()));
         }
     }
 
+    /**
+     * Sends the message to the network layer (webhooks).
+     *
+     * @param message the final message
+     */
     protected void onNetworkDispatch(Message message) {
-        ChatChannel messageChannel = message.getChannel();
-        ChannelsConfig.WebHook localWebHook = null;
-        ChannelsConfig.WebHook globalWebHook = channelsConfig.getGlobalWebHook();
-        if (messageChannel != null) {
-            ChannelsConfig.ChannelSettings channelSettings = channelsConfig.getChannels().get(messageChannel.getId());
-            if (channelSettings != null) {
-                if (channelSettings.isChannelIgnore()) return;
-                localWebHook = channelSettings.getWebHook();
-            }
-        }
-
-        String targetUrl = resolveWebhookUrl(localWebHook, globalWebHook);
-        if (targetUrl == null) return;
-
-        try {
-            String payload = resolveWebhookCleanText(localWebHook, globalWebHook) ? message.getPlainText() : ComponentSerializerProvider.toJson(message.getContent());
-            NetworkMessage networkMessage = new NetworkMessage(payload);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(targetUrl))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(networkMessage)))
-                    .build();
-
-            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenAccept(response -> {
-                        if (response.statusCode() >= 400) {
-                            log.error("Failed to send webhook. Server returned status code: " + response.statusCode());
-                        }
-                    })
-                    .exceptionally(ex -> {
-                        log.error("Error occurred while sending webhook: " + ex.getMessage());
-                        return null;
-                    });
-        } catch (Exception e) {
-            log.error("Failed to build or send HTTP request" + e);
-        }
-    }
-
-    @Nullable
-    private String resolveWebhookUrl(ChannelsConfig.WebHook local, ChannelsConfig.WebHook global) {
-        if (local != null && local.isEnable() && !local.getUrl().isBlank()) return local.getUrl();
-        else if (global.isEnable() && !global.getUrl().isBlank()) return global.getUrl();
-        return null;
-    }
-
-    private boolean resolveWebhookCleanText(ChannelsConfig.WebHook local, ChannelsConfig.WebHook global) {
-        if (local != null && local.isEnable() && !local.getUrl().isBlank()) return local.isCleanText();
-        else if (global.isEnable() && !global.getUrl().isBlank()) return global.isCleanText();
-        return false;
-    }
-
-    private record NetworkMessage(String content) {
+        NetworkManager.getInstance().dispatcher(message);
     }
 }
