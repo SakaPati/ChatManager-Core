@@ -1,6 +1,6 @@
 package ru.fozeton.chatmanager.messages.metadata;
 
-import java.lang.reflect.Constructor;
+import ru.fozeton.chatmanager.exceptions.MetadataException;import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public interface MetadataType {
             constructor.setAccessible(true);
             return (MetadataType) constructor.newInstance(values);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new MetadataException(e);
         }
     }
 }

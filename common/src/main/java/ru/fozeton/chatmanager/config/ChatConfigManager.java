@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigHolder;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;import ru.fozeton.chatmanager.exceptions.ConfigException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -41,7 +41,7 @@ public class ChatConfigManager {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ConfigException(e);
         }
         return null;
     }

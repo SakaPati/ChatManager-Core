@@ -7,6 +7,7 @@ import ru.fozeton.chatmanager.ChatManagerCore;
 import ru.fozeton.chatmanager.config.ChatConfigManager;
 import ru.fozeton.chatmanager.config.VoiceConfig;
 import ru.fozeton.chatmanager.events.speech.*;
+import ru.fozeton.chatmanager.exceptions.SpeechToTextException;
 import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.Logger;
 import ru.fozeton.chatmanager.utils.stt.VoiceIndicator;
@@ -134,8 +135,8 @@ public class SpeechToText {
      *
      * @param language the language model to load
      * @return the cached or newly created instance
-     * @throws RuntimeException if the model is missing or fails to load natively
-     *                          (in that case a {@link VoskModelAbsentEvent} is fired by the {@link Builder})
+     * @throws SpeechToTextException if the model is missing or fails to load natively
+     *                               (in that case a {@link VoskModelAbsentEvent} is fired by the {@link Builder})
      */
     public static synchronized SpeechToText get(Language language) {
         if (cached != null && cachedLanguage == language) return cached;
@@ -270,10 +271,10 @@ public class SpeechToText {
      * If the microphone line is not supported, {@link VoskNotSupportMicroEvent} is fired and the
      * method returns without throwing. {@link VoiceIndicator#finished()} is always called on exit.
      *
-     * @throws IOException      if an I/O error occurs while preparing the language directory
-     * @throws RuntimeException if audio line initialization fails or Vosk encounters an error
+     * @throws IOException           if an I/O error occurs while preparing the language directory
+     * @throws SpeechToTextException if audio line initialization fails or Vosk encounters an error
      */
-    public void transcription() throws IOException, RuntimeException {
+    public void transcription() throws IOException, SpeechToTextException {
         Path languagePath = models.resolve(language.getPath());
         long lastActiveVoice = 0;
 
@@ -321,7 +322,7 @@ public class SpeechToText {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new SpeechToTextException(e);
         } finally {
             busy.set(false);
             VoiceIndicator.finished();
@@ -460,8 +461,8 @@ public class SpeechToText {
          * This is a slow, memory-heavy operation for large models.
          *
          * @param language the target STT language
-         * @throws RuntimeException if the model is missing or fails to instantiate natively;
-         *                          a {@link VoskModelAbsentEvent} with the expected path is fired first
+         * @throws SpeechToTextException if the model is missing or fails to instantiate natively;
+         *                               a {@link VoskModelAbsentEvent} with the expected path is fired first
          */
         public Builder(Language language) {
             Path models = ChatManagerCore.getConfigDir().resolve("language_models");
@@ -473,7 +474,7 @@ public class SpeechToText {
                 this.language = language;
             } catch (Exception e) {
                 ChatManagerCore.EVENT_BUS.activate(new VoskModelAbsentEvent(modelPath));
-                throw new RuntimeException(e);
+                throw new SpeechToTextException(e);
             }
         }
 

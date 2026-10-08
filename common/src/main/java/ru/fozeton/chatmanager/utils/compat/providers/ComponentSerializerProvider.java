@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.IComponentSerializer;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -13,7 +14,7 @@ public class ComponentSerializerProvider {
 
     public static String toJson(Component component) {
         if (instance == null) {
-            throw new IllegalStateException(
+            throw new NotInitializedException(
                     """
                             IComponentSerializer has not been initialized!
                             Please call ComponentSerializerProvider.setInstance(...) during client initialization.

@@ -5,7 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import ru.fozeton.chatmanager.ChatManagerCore;
-import ru.fozeton.chatmanager.module.gif.GifsResponse;
+import ru.fozeton.chatmanager.exceptions.GifException;import ru.fozeton.chatmanager.module.gif.GifsResponse;
 import ru.fozeton.chatmanager.module.gif.McAnim;
 import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.utils.compat.providers.GameProfileProvider;
@@ -61,7 +61,7 @@ public class Gif {
 
             return "&customer_id=" + URLEncoder.encode(hexString.toString(), UTF_8);
         } catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException(ex);
+            throw new GifException(ex);
         }
     }
 
@@ -83,7 +83,7 @@ public class Gif {
                                 path
                         );
                     } catch (InterruptedException | ExecutionException | IOException e) {
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -100,7 +100,7 @@ public class Gif {
                         if (isNotWebp(webp)) return false;
                         return McAnim.INSTANCE.convert_webp(webp, webp.length, name + ".mcanim", dir);
                     } catch (IOException | InterruptedException e) {
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -118,13 +118,13 @@ public class Gif {
                     try {
                         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                         if (response.statusCode() != 200) {
-                            throw new IOException("items HTTP " + response.statusCode() + " for " + gifId);
+                            throw new GifException("items HTTP " + response.statusCode() + " for " + gifId);
                         }
 
                         GifsResponse list = gson.fromJson(response.body(), GifsResponse.class);
                         if (list == null || list.getData() == null
                             || list.getData().getData() == null || list.getData().getData().isEmpty()) {
-                            throw new IOException("Gif not found: " + gifId);
+                            throw new GifException("Gif not found: " + gifId);
                         }
 
                         String url = list.getData().getData().getFirst().getFile().getXs().getAnimated().getUrl();
@@ -135,10 +135,10 @@ public class Gif {
 
                         return client.send(gifRequest, HttpResponse.BodyHandlers.ofByteArray()).body();
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
+                        throw new GifException(e);
                     }
                 }, EXECUTOR
         );
@@ -161,10 +161,10 @@ public class Gif {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return gson.fromJson(response.body(), GifsResponse.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new GifException(e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new GifException(e);
         }
     }
 

@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.IHoverEvent;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -14,7 +15,7 @@ public class HoverEventProvider {
 
     public static HoverEvent showText(Component text) {
         if (instance == null) {
-            throw new IllegalStateException(
+            throw new NotInitializedException(
                     """
                             IHoverEvent has not been initialized!
                             Please call HoverEventProvider.setInstance(...) during client initialization.

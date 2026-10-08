@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.IComponentSerializer;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -16,7 +17,7 @@ public class ComponentSerializer1_21_4 implements IComponentSerializer {
     @Override
     public String toJson(Component component) {
         ClientLevel level = Minecraft.getInstance().level;
-        if (level == null) throw new RuntimeException("ClientLevel not initialized");
+        if (level == null) throw new NotInitializedException("ClientLevel not initialized");
         return Component.Serializer.toJson(component, level.registryAccess());
     }
 }

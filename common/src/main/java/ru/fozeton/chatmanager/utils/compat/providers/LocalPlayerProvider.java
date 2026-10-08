@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.ILocalPlayer;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -13,7 +14,7 @@ public class LocalPlayerProvider {
 
     private static ILocalPlayer require() {
         if (instance == null) {
-            throw new IllegalStateException(
+            throw new NotInitializedException(
                     """
                             ILocalPlayer has not been initialized!
                             Please call LocalPlayerProvider.setInstance(...) during client initialization.

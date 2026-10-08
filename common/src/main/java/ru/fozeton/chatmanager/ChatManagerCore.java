@@ -5,7 +5,7 @@ import com.ferra13671.megaevents.eventbus.impl.EventBus;
 import lombok.Getter;
 import lombok.Setter;
 import ru.fozeton.chatmanager.channel.ChatChannel;
-import ru.fozeton.chatmanager.messages.ChatMessageParser;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;import ru.fozeton.chatmanager.messages.ChatMessageParser;
 import ru.fozeton.chatmanager.messages.DefaultMessage;
 import ru.fozeton.chatmanager.network.NetworkManager;
 import ru.fozeton.chatmanager.network.WebHooksHandler;
@@ -46,12 +46,12 @@ public final class ChatManagerCore {
     }
 
     public static Path getConfigDir() {
-        if (configDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        if (configDir == null) throw new NotInitializedException("ChatManagerCore.init() не вызван");
         return configDir;
     }
 
     public static Path getGameDir() {
-        if (gameDir == null) throw new IllegalStateException("ChatManagerCore.init() не вызван");
+        if (gameDir == null) throw new NotInitializedException("ChatManagerCore.init() не вызван");
         return gameDir;
     }
 }

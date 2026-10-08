@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.network.PacketListener;
 import net.minecraft.network.protocol.Packet;
+import ru.fozeton.chatmanager.exceptions.NotInitializedException;
 import ru.fozeton.chatmanager.utils.compat.api.IPacketCompat;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -17,7 +18,7 @@ public class PacketCompatProvider {
             T listener
     ) {
         if (instance == null) {
-            throw new IllegalStateException(
+            throw new NotInitializedException(
                     """
                             IPacketCompat has not been initialized!
                             Please call PacketCompatProvider.setInstance(...) during client initialization.

@@ -7,10 +7,10 @@ import blue.endless.jankson.api.SyntaxError;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.serializer.ConfigSerializer;
 import ru.fozeton.chatmanager.ChatManagerCore;
+import ru.fozeton.chatmanager.exceptions.ConfigException;
 import ru.fozeton.chatmanager.utils.Logger;
 
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -33,11 +33,8 @@ public class FolderJanksonSerializer<T extends IConfig> implements ConfigSeriali
             Files.createDirectories(file.getParent());
             Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
             Files.writeString(tmp, JANKSON.toJson(config).toJson(JsonGrammar.JSON5));
-            try {
-                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
-            }
+            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new SerializationException(e);
         }
@@ -70,7 +67,7 @@ public class FolderJanksonSerializer<T extends IConfig> implements ConfigSeriali
             config.applyDefaults();
             return config;
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Config " + type.getName() + " needs a public no-arg constructor", e);
+            throw new ConfigException("Config " + type.getName() + " needs a public no-arg constructor", e);
         }
     }
 

@@ -3,6 +3,7 @@ package ru.fozeton.chatmanager.module.gif;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import ru.fozeton.chatmanager.exceptions.GifException;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -19,7 +20,7 @@ public class McAnimCodec {
 
         byte[] magic = new byte[6];
         buffer.get(magic);
-        if (!new String(magic).equals("MCANIM")) throw new IllegalArgumentException("The file is not valid .mcanim!");
+        if (!new String(magic).equals("MCANIM")) throw new GifException("The file is not valid .mcanim!");
 
         int major = buffer.get() & 0xFF;
         int minor = buffer.get() & 0xFF;
@@ -66,8 +67,17 @@ public class McAnimCodec {
     @RequiredArgsConstructor
     public static class Animation {
         @Getter(AccessLevel.NONE)
-        private final int major, minor, patch;
-        private final int width, height;
+        private final int major;
+
+        @Getter(AccessLevel.NONE)
+        private final int minor;
+
+        @Getter(AccessLevel.NONE)
+        private final int patch;
+
+        private final int width;
+        private final int height;
+
         private final List<Frame> frames;
 
         public String getVersion() {
